@@ -6,7 +6,7 @@
 set -euo pipefail
 cd /opt/healthier
 
-REPO="${REPO:-https://github.com/tarreboy733/healthier.git}"
+REPO="${REPO:-https://github.com/quark733/healthier.git}"
 BRANCH="${BRANCH:-main}"
 
 command -v git >/dev/null || { apt-get update -qq && apt-get install -y -qq git; }
