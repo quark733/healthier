@@ -52,9 +52,13 @@ def replies_from_logs(max_age_s=6 * 3600):
                     continue
                 for block in content:
                     if isinstance(block, dict) and block.get("type") == "tool_result":
-                        for text in texts_in(block.get("content")):
-                            if text.startswith("sessions | ") or text.strip() == "no sessions in range":
-                                found[text.split("\n", 1)[0]] = text
+                        # A reply can come in several text blocks: join them, and keep the
+                        # fullest copy of each, since a log can also hold a shortened one.
+                        text = "\n".join(texts_in(block.get("content")))
+                        if text.startswith("sessions | ") or text.strip() == "no sessions in range":
+                            head = text.split("\n", 1)[0]
+                            if len(text) > len(found.get(head, "")):
+                                found[head] = text
         if found:
             break
     return list(found.values())
