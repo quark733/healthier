@@ -830,6 +830,37 @@
     }
   },
   "today": {
+    "food": {
+      "title": "Food today",
+      "left": "{kcal} kcal left",
+      "over": "{kcal} kcal over",
+      "noTargets": "Add your targets on the Nutrition page to see what's left.",
+      "nothing": "Nothing logged yet for {date}."
+    },
+    "training": {
+      "title": "Training load",
+      "none": "No StrengthLog sessions yet. Connect them on the Training page.",
+      "setsWeek": "sets in 7 days",
+      "vsUsual": "Usually about {usual} a week",
+      "last": "Last session",
+      "lastValue": "{ago, plural, =0 {today} one {yesterday} other {# days ago}} · {volume} t · {sets} sets",
+      "ratedSleep": "Your sleep rating",
+      "ratedForm": "Your form rating",
+      "verdict": "{verdict, select, over {{over} got more sets this week than most people recover from (past MRV). Expect sore, heavy muscles there and possibly weaker lifts for a few days; a lighter next session for them, or a deload if it keeps up, protects strength while you're eating less.} ramp {This week is about {percent}% above your usual volume. A jump like that is when soreness and fatigue tend to show; it's fine for a week or two, then hold or ease off.} high {{high} sit near the top of what most people recover from. Some lingering soreness there is normal; keep it at that rather than adding more.} rest {No sessions in the last 7 days. You should be well recovered, and a short break doesn't cost muscle or strength.} other {Volume this week is within the productive range and close to your usual. You should feel recovered enough to train normally; on a diet, that's the load that keeps muscle.}}",
+      "shortSleep": "Last night's sleep was well below your usual, which makes recovery and hard sets feel tougher."
+    },
+    "weight": {
+      "title": "Weight goal",
+      "target": "target {kg} kg",
+      "toGo": "To go",
+      "toGoValue": "{kg} kg in {weeks} weeks",
+      "needed": "Pace needed",
+      "pace": "{kg} kg/week ({pct}%)",
+      "trend": "Your pace, 5 weeks",
+      "trendNone": "Not enough weigh-ins yet",
+      "noTarget": "Add a target weight and date on the Nutrition page.",
+      "verdict": "{band, select, fast {That's faster than the {min}–{max}% of bodyweight a week usually advised to keep muscle (Helms et al. 2014). A later date or a less ambitious target would protect more muscle and strength.} gentle {That's slower than {min}% a week: easy to keep muscle at, and you could go a little faster if you want to.} other {That's within the {min}–{max}% of bodyweight a week usually advised to keep muscle while losing fat (Helms et al. 2014); athletes losing 0.7% a week kept more muscle than at 1.4% (Garthe et al. 2011).}}"
+    },
     "battery": {
       "title": "Body battery",
       "tiers": {
@@ -1573,9 +1604,55 @@
       "title": "Estimated energy balance",
       "hint": "Energy logged less energy burned, as your watch or phone estimates it. Both are estimates, so read the direction over weeks rather than any one day; a day logged only in part shows as a deficit it wasn't.",
       "series": "{bucket, select, day {logged less burned} week {weekly average, logged less burned} other {monthly average, logged less burned}}"
+    },
+    "rest": {
+      "title": "Rest of today",
+      "hint": "What's left of today's targets, and a few everyday foods that would go towards the one furthest behind. Protein comes first while it's behind: it's what most helps keep muscle while eating less.",
+      "noTargets": "Add your targets below to see what's left of today.",
+      "leftValue": "{value} {unit} left",
+      "overValue": "{value} {unit} over",
+      "ideas": "Ideas for the {grams} g of {focus, select, protein {protein} carbs {carbs} other {fat}} left:",
+      "foodValue": "{amount} g {focus, select, protein {protein} carbs {carbs} other {fat}} · {kcal} kcal",
+      "labels": "Typical values per portion; the product's own label is the one to log.",
+      "done": "Today's targets are met, or there's too little energy left for a portion."
+    },
+    "foods": {
+      "quark": "Quark, {grams} g",
+      "skyr": "Skyr, {grams} g",
+      "cottageCheese": "Cottage cheese, {grams} g",
+      "chicken": "Chicken breast, {grams} g cooked",
+      "tuna": "Tuna in water, {grams} g",
+      "eggs": "2 eggs ({grams} g)",
+      "wheyShake": "Whey shake, {grams} g powder",
+      "salmon": "Salmon, {grams} g",
+      "mince": "Beef mince 10%, {grams} g",
+      "oats": "Oats, {grams} g dry",
+      "rice": "Rice, {grams} g cooked",
+      "potatoes": "Potatoes, {grams} g",
+      "pasta": "Pasta, {grams} g cooked",
+      "bread": "Bread, 2 slices ({grams} g)",
+      "banana": "Banana ({grams} g)",
+      "peanutButter": "Peanut butter, {grams} g",
+      "nuts": "Nuts, {grams} g",
+      "oliveOil": "Olive oil, {grams} g"
     }
   },
   "training": {
+    "muscles": {
+      "chest": "Chest",
+      "back": "Back",
+      "shoulders": "Shoulders",
+      "quads": "Quads",
+      "hamstrings": "Hamstrings and glutes",
+      "biceps": "Biceps",
+      "triceps": "Triceps"
+    },
+    "muscleWeek": {
+      "title": "Sets per muscle, last 7 days",
+      "hint": "Work sets counted fractionally: 1 for the muscle an exercise mainly trains, 0.5 for the ones it trains on the side, the count that predicted growth best across 35 studies (Pelland et al. 2024). The marks are Renaissance Periodization's weekly landmarks: minimum effective (MEV), the productive range up to the top of MAV, and maximum recoverable (MRV). They're guides for an average lifter, not your own limits. While eating less, the lower part of the productive range is usually enough to keep muscle.",
+      "value": "{sets} sets · {zone, select, below {below MEV ({mev})} productive {productive ({mev}–{mavTop})} high {high, near MRV ({mrv})} other {past MRV ({mrv})}}",
+      "uncounted": "Not counted (no muscle match): {names}"
+    },
     "loading": "Loading your training…",
     "loadFailed": "Couldn't load your training",
     "tonnes": "{value} t",
@@ -1685,6 +1762,19 @@
         "failed": "Nothing could be read from that text."
       }
     }
+  },
+  "targets": {
+    "title": "Your targets",
+    "hint": "What your food diary aims for, and the weight you're working towards. MyFitnessPal doesn't share its goals through Apple Health, so type them in here once. Leave any you don't use empty.",
+    "kcal": "Energy",
+    "protein": "Protein",
+    "carbs": "Carbs",
+    "fat": "Fat",
+    "weight": "Target weight",
+    "weightBy": "By",
+    "save": "Save targets",
+    "saved": "Saved",
+    "failed": "Couldn't save. Check the values and try again."
   },
   "cycle": {
     "eyebrow": "Today in your cycle",

@@ -4,6 +4,7 @@ import {
   bestOf, defaultExercise, estimatedOneRepMax, exerciseProgress, parseSessions, parseSet, personalBests, recentLoad, sessionSets,
   sessionVolume, setsByExercise, unreadCount, weekStart, weeklyTotals,
 } from '../strength';
+import { musclesOf, setsPerMuscle, zoneOf } from '../muscles';
 
 // Made-up sessions in the shape StrengthLog's get_sessions writes. No real person's training.
 const REPLY = `sessions | 2026-09-01..2026-09-08 | 3 of 9 | kg | warmup sets excluded
@@ -152,5 +153,55 @@ describe('StrengthLog details seen in real replies', () => {
     assert.equal(empty.exercises.length, 0);
     assert.equal(empty.durationMin, null);
     assert.equal(empty.ratings, undefined);
+  });
+});
+
+describe('sets per muscle group', () => {
+  it('counts StrengthLog’s exercise names for the muscles they train, fractionally', () => {
+    const cases: [string, Record<string, number>][] = [
+      ['Bänkpress', { chest: 1, triceps: 0.5, shoulders: 0.5 }],
+      ['Bänkpress med stopp', { chest: 1, triceps: 0.5, shoulders: 0.5 }],
+      ['Smalbänk', { triceps: 1, chest: 0.5, shoulders: 0.5 }],
+      ['Uppåtlutande hantelpress 45 grader', { chest: 1, shoulders: 0.5, triceps: 0.5 }],
+      ['Liggande tricepsextension med hantlar', { triceps: 1 }],
+      ['Omvända hantelflyes', { shoulders: 1, back: 0.5 }],
+      ['Maskinflyes', { chest: 1 }],
+      ['Press', { shoulders: 1, triceps: 0.5 }],
+      ['Sidolyft med kabel', { shoulders: 1 }],
+      ['Rodd med T-bar', { back: 1, biceps: 0.5 }],
+      ['Latsdrag med medium neutralgrepp', { back: 1, biceps: 0.5 }],
+      ['EZ-Curl', { biceps: 1 }],
+      ['Sittande lårcurl', { hamstrings: 1 }],
+      ['Marklyft', { hamstrings: 1, back: 0.5, quads: 0.5 }],
+      ['Pausmarklyft', { hamstrings: 1, back: 0.5, quads: 0.5 }],
+      ['Rumänska marklyft', { hamstrings: 1, back: 0.5 }],
+      ['Pendulum squat', { quads: 1 }],
+      ['Knäböj', { quads: 1 }],
+      ['Benspark', { quads: 1 }],
+      ['Bench Press', { chest: 1, triceps: 0.5, shoulders: 0.5 }],
+    ];
+    for (const [name, work] of cases) assert.deepEqual(musclesOf(name), work, name);
+    assert.equal(musclesOf('Kabelcrunch'), null);
+  });
+
+  it('adds a week of sets per muscle and places each against its landmarks', () => {
+    const { sessions } = parseSessions(`sessions | 2026-09-01..2026-09-04 | 2 of 2 | kg | warmup sets excluded
+
+2026-09-01  Push  60min
+  Bench Press: 100x5x4, 90x8x2
+  Biceps Curl: 12x10x3
+
+2026-09-04  Abs  20min
+  Cable Crunch: 40x12x3`);
+    const { week, uncounted } = setsPerMuscle(sessions, '2026-09-05');
+    const by = Object.fromEntries(week.map((w) => [w.muscle, w]));
+    assert.equal(by.chest.sets, 6);
+    assert.equal(by.chest.zone, 'productive');
+    assert.equal(by.triceps.sets, 3);
+    assert.equal(by.triceps.zone, 'below');
+    assert.equal(by.biceps.sets, 3);
+    assert.deepEqual(uncounted, ['Cable Crunch']);
+    assert.equal(zoneOf('chest', 24), 'over');
+    assert.equal(zoneOf('chest', 19), 'high');
   });
 });

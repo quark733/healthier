@@ -13,6 +13,8 @@ import { Card, CardHead, EmptyState, Row, Segmented, Value, fmtNum } from '../ui
 import { ChartChips } from '../ui/ChartChips';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 import { useStrength } from '../hooks/useStrength';
+import { setsPerMuscle } from '../pipeline/muscles';
+import { MuscleWeekRows } from './WellbeingCards';
 
 /**
  * Strength training from StrengthLog: what each session lifted, how this week compares with the
@@ -65,6 +67,7 @@ export function TrainingView({ demo, today, notice }: { demo: boolean; today: Ci
 
   const latest = sessions[sessions.length - 1];
   const load = recentLoad(sessions, today);
+  const muscles = setsPerMuscle(sessions, today);
   const perExercise = setsByExercise(sessions, today).slice(0, 8);
   const bests = personalBests(sessions).slice(0, 10);
   const since = (Date.parse(today) - Date.parse(totals[0].date)) / 86_400_000;
@@ -133,6 +136,16 @@ export function TrainingView({ demo, today, notice }: { demo: boolean; today: Ci
         <LatestSession session={latest} />
         <ThisWeek load={load} />
       </div>
+
+      <Card>
+        <CardHead title={t('training.muscleWeek.title')} hint={t('training.muscleWeek.hint')} />
+        <div className="px-5 pb-5">
+          <MuscleWeekRows week={muscles.week} />
+          {muscles.uncounted.length > 0 && (
+            <p className="text-note text-zinc-500 mt-3">{t('training.muscleWeek.uncounted', { names: muscles.uncounted.join(', ') })}</p>
+          )}
+        </div>
+      </Card>
 
       <div className="flex items-center justify-between px-1 gap-3">
         <h2 className="text-section uppercase text-page-ink">{t('training.overTime.title')}</h2>

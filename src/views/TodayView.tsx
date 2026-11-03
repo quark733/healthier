@@ -22,6 +22,9 @@ import type { Gender } from '../pipeline/registry';
 import { ThisWeek } from './ThisWeek';
 import { InsightsCarousel } from '../components/InsightsCarousel';
 import { Tile } from '../ui/Tile';
+import { useTargets } from '../hooks/useTargets';
+import { useStrength } from '../hooks/useStrength';
+import { FoodToday, TrainingRecovery, WeightGoal } from './WellbeingCards';
 
 /** Breathing's colour on the Vitals page. */
 const BREATHING_HEX = 'var(--purple-500)';
@@ -31,8 +34,11 @@ export function TodayView({
   gender,
   intraday,
   clock,
+  demo = false,
 }: {
   data: SyncResult;
+  /** Demo mode: made-up training and targets instead of the person's. */
+  demo?: boolean;
   /** Picks the body battery's figure. */
   gender: Gender | null;
   intraday?: IntradayDays;
@@ -40,6 +46,8 @@ export function TodayView({
   clock?: { now: Date; timeZone: string };
 }) {
   const goals = useGoals();
+  const { targets } = useTargets();
+  const strength = useStrength(demo);
   const { insight: cycle, judged } = useCycle();
   const s = todaySummary(data, clock?.now, { intraday, timeZone: clock?.timeZone, goals, cycle: cycle ?? undefined });
   const days = data.days;
@@ -289,6 +297,17 @@ export function TodayView({
             </div>
           </Card>
         </div>
+      </div>
+
+      {/* Food, training and bodyweight: what goes in, what's asked of the body, and where it's heading. */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 items-stretch">
+        <FoodToday day={last} targets={targets} today={today} />
+        <TrainingRecovery
+          sessions={strength.data?.sessions ?? []}
+          today={today}
+          sleepZ={slDay?.date && isRecent(slDay.date, today) ? sleepCmp.z : null}
+        />
+        <WeightGoal days={days} targets={targets} today={today} />
       </div>
 
       {/* Stacked, the carousel comes last, as on every other page; side by side it leads the row. */}

@@ -12,6 +12,11 @@ import { ChartChips } from '../ui/ChartChips';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 import type { SyncResult } from '../pipeline/sync';
 import type { DailyRecord } from '../types/health';
+import { useTargets } from '../hooks/useTargets';
+import { suggest } from '../pipeline/foods';
+import type { Targets } from '../pipeline/targets';
+import { TargetsCard } from './TargetsCard';
+import { FoodLine, remainingOf } from './WellbeingCards';
 
 /**
  * Food logged in a diary app (MyFitnessPal and the like), as it reaches Google Health: energy,
@@ -65,6 +70,7 @@ export function NutritionView({ data }: { data: SyncResult }) {
   const { days: window, bucket } = spanState;
   const wide = useMediaQuery('(min-width: 768px)');
   const [chart, setChart] = useState<NutritionChart>('energy');
+  const { targets } = useTargets();
 
   const today = days.at(-1)?.date ?? null;
   const kcalWin = series(window, kcalOf);
@@ -89,9 +95,12 @@ export function NutritionView({ data }: { data: SyncResult }) {
   const latest = [...days].reverse().find(logged);
   if (!latest) {
     return (
-      <Card>
-        <EmptyState title={t('nutrition.empty.title')} detail={t('nutrition.empty.detail')} />
-      </Card>
+      <div className="space-y-3">
+        <Card>
+          <EmptyState title={t('nutrition.empty.title')} detail={t('nutrition.empty.detail')} />
+        </Card>
+        <TargetsCard />
+      </div>
     );
   }
 
@@ -106,7 +115,7 @@ export function NutritionView({ data }: { data: SyncResult }) {
         right={<CardSummary data={finished(kcalOf)} color={MACRO.energy} unit={t('units.kcal')} format={(v) => fmtNum(v, 0)} />}
       />
       <div className="px-2 pb-3">
-        <BarSeries series={groupSeries(kcalWin, bucket)} bucket={bucket} color={MACRO.energy} unit={t('units.kcal')} height={210} />
+        <BarSeries series={groupSeries(kcalWin, bucket)} bucket={bucket} color={MACRO.energy} unit={t('units.kcal')} height={210} goal={targets.kcal ?? undefined} />
       </div>
     </Card>
   );
@@ -118,7 +127,7 @@ export function NutritionView({ data }: { data: SyncResult }) {
         right={<CardSummary data={finished(proteinOf)} color={MACRO.protein} unit={t('units.grams')} format={(v) => fmtNum(v, 0)} />}
       />
       <div className="px-2 pb-3">
-        <BarSeries series={groupSeries(proteinWin, bucket)} bucket={bucket} color={MACRO.protein} unit={t('units.grams')} height={200} />
+        <BarSeries series={groupSeries(proteinWin, bucket)} bucket={bucket} color={MACRO.protein} unit={t('units.grams')} height={200} goal={targets.proteinG ?? undefined} />
       </div>
     </Card>
   );
@@ -238,6 +247,8 @@ export function NutritionView({ data }: { data: SyncResult }) {
         <LastSevenDays days={lastWeek} weight={weight} />
       </div>
 
+      <RestOfDay day={days.at(-1)} targets={targets} />
+
       <div className="flex items-center justify-between px-1">
         <h2 className="text-section uppercase text-page-ink">{t('nutrition.overTime.title')}</h2>
         <SpanSelector state={spanState} />
@@ -262,7 +273,49 @@ export function NutritionView({ data }: { data: SyncResult }) {
           {shownChart.card}
         </>
       )}
+
+      <TargetsCard />
     </div>
+  );
+}
+
+/** Today's food against the targets: what's left of each, and a few foods that fit what's left. */
+function RestOfDay({ day, targets }: { day: DailyRecord | undefined; targets: Targets }) {
+  const hasTargets = targets.kcal !== null || targets.proteinG !== null || targets.carbsG !== null || targets.fatG !== null;
+  const left = remainingOf(day, targets);
+  const idea = hasTargets ? suggest(left, 3) : null;
+  const leftText = (v: number | null, unit: string) =>
+    v === null ? '—' : v >= 0 ? t('nutrition.rest.leftValue', { value: fmtNum(v, 0), unit }) : t('nutrition.rest.overValue', { value: fmtNum(-v, 0), unit });
+  return (
+    <Card>
+      <CardHead title={t('nutrition.rest.title')} hint={hasTargets ? t('nutrition.rest.hint') : t('nutrition.rest.noTargets')} />
+      {hasTargets && (
+        <div className="px-5 pb-4 grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-3">
+          <div>
+            <Row label={t('nutrition.day.energy')}>{leftText(left.kcal, t('units.kcal'))}</Row>
+            <Row label={t('nutrition.macros.protein')}>{leftText(left.proteinG, t('units.grams'))}</Row>
+            <Row label={t('nutrition.macros.carbs')}>{leftText(left.carbsG, t('units.grams'))}</Row>
+            <Row label={t('nutrition.macros.fat')}>{leftText(left.fatG, t('units.grams'))}</Row>
+          </div>
+          <div>
+            {idea ? (
+              <>
+                <p className="text-caption text-zinc-400 mb-1.5">
+                  {t('nutrition.rest.ideas', {
+                    focus: idea.focus,
+                    grams: fmtNum(idea.focus === 'protein' ? left.proteinG : idea.focus === 'carbs' ? left.carbsG : left.fatG, 0),
+                  })}
+                </p>
+                {idea.foods.map((f) => <FoodLine key={f.id} food={f} focus={idea.focus} />)}
+                <p className="text-note text-zinc-500 mt-2">{t('nutrition.rest.labels')}</p>
+              </>
+            ) : (
+              <p className="text-caption text-zinc-500">{t('nutrition.rest.done')}</p>
+            )}
+          </div>
+        </div>
+      )}
+    </Card>
   );
 }
 

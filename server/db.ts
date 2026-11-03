@@ -174,6 +174,19 @@ const MIGRATIONS: { id: number; name: string; sql: string }[] = [
       ALTER TABLE strength_links ADD COLUMN ingest_key_hash bytea UNIQUE;
     `,
   },
+  {
+    id: 9,
+    name: 'user targets',
+    sql: `
+      -- The person's food and bodyweight targets (Targets in src/pipeline/targets.ts), typed in
+      -- on the Nutrition page. One row a person, gone with the account.
+      CREATE TABLE user_targets (
+        user_id    uuid PRIMARY KEY REFERENCES users (id) ON DELETE CASCADE,
+        value      jsonb NOT NULL,
+        updated_at timestamptz NOT NULL DEFAULT now()
+      );
+    `,
+  },
 ];
 
 export function createDb(connectionString: string): Db {
