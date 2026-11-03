@@ -167,5 +167,7 @@ export interface StrengthResponse {
   lastError: string | null;
   /** Sets the parser couldn't read last time. */
   unread: number;
-  via: 'sync' | 'paste' | null;
+  via: 'sync' | 'paste' | 'scheduled' | null;
+  /** A sync key exists, for a scheduled job to send sessions in. */
+  hasKey: boolean;
 }

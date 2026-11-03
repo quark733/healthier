@@ -1,6 +1,6 @@
 import type { CivilDate } from '../src/lib/date';
 import { sessionKeys, type StrengthSession } from '../src/pipeline/strength';
-import { decrypt, encrypt } from './crypto';
+import { decrypt, encrypt, randomToken, sha256 } from './crypto';
 import { withTransaction, type Db } from './db';
 
 /**
@@ -19,7 +19,7 @@ export interface StrengthStatus {
   /** Sets the parser couldn't read in the last sync: a sign StrengthLog changed its format. */
   unread?: number;
   /** How the last sessions arrived: by the sync, or pasted in. */
-  via?: 'sync' | 'paste';
+  via?: 'sync' | 'paste' | 'scheduled';
 }
 
 /** The OAuth client and tokens for StrengthLog's MCP server. Stored encrypted, whole. */
@@ -125,4 +125,30 @@ export async function usersWithStrengthLink(db: Db): Promise<string[]> {
     "SELECT user_id FROM strength_links WHERE secrets IS NOT NULL AND coalesce((status->>'connected')::boolean, false)",
   );
   return rows.map((r) => r.user_id);
+}
+
+/** Make a new sync key, replacing any old one, and return it: it's shown once and never stored. */
+export async function newIngestKey(db: Db, userId: string): Promise<string> {
+  const key = `hc_${randomToken(32)}`;
+  await db.query(
+    `INSERT INTO strength_links (user_id, ingest_key_hash) VALUES ($1, $2)
+     ON CONFLICT (user_id) DO UPDATE SET ingest_key_hash = EXCLUDED.ingest_key_hash, updated_at = now()`,
+    [userId, sha256(key)],
+  );
+  return key;
+}
+
+export async function revokeIngestKey(db: Db, userId: string): Promise<void> {
+  await db.query('UPDATE strength_links SET ingest_key_hash = NULL, updated_at = now() WHERE user_id = $1', [userId]);
+}
+
+/** Whose sync key this is, or null. */
+export async function userForIngestKey(db: Db, key: string): Promise<string | null> {
+  const { rows } = await db.query<{ user_id: string }>('SELECT user_id FROM strength_links WHERE ingest_key_hash = $1', [sha256(key)]);
+  return rows[0]?.user_id ?? null;
+}
+
+export async function hasIngestKey(db: Db, userId: string): Promise<boolean> {
+  const { rows } = await db.query('SELECT 1 FROM strength_links WHERE user_id = $1 AND ingest_key_hash IS NOT NULL', [userId]);
+  return rows.length > 0;
 }

@@ -26,7 +26,8 @@ async function startServer(config: Config) {
   // minute-level heart rate and shrinks about fivefold. Small responses are sent as they are.
   app.use(compression());
   app.use(cookieParser());
-  app.use(express.json());
+  // Room for years of pasted strength sessions; everything else the app sends is far smaller.
+  app.use(express.json({ limit: '2mb' }));
 
   // Health probe for Docker and reverse proxies; fails when the database is unreachable.
   app.get('/healthz', async (req, res) => {

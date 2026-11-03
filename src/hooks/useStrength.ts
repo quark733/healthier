@@ -11,6 +11,7 @@ const DEMO: StrengthResponse = {
   lastError: null,
   unread: 0,
   via: 'sync',
+  hasKey: false,
 };
 
 /** Strength sessions and the StrengthLog link; asks again every few seconds while a sync runs. */
@@ -59,5 +60,11 @@ export function useStrength(demo: boolean) {
     await load();
   }, [load]);
 
-  return { data, error, reload: load, sync, importText, disconnect };
+  const newKey = useCallback(async () => {
+    const { key } = await api<{ key: string }>('/api/strength/key', { method: 'POST' });
+    await load();
+    return key;
+  }, [load]);
+
+  return { data, error, reload: load, sync, importText, disconnect, newKey };
 }

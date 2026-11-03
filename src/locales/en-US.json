@@ -1652,16 +1652,24 @@
     },
     "link": {
       "title": "StrengthLog",
-      "hint": "Connect StrengthLog to bring in every session with its sets, reps and weights. It needs StrengthLog Premium with MCP connections turned on (Profile → StrengthLog MCP), and reads only.",
+      "hint": "Sessions with every set, rep and weight, read from StrengthLog's MCP server by an AI assistant StrengthLog supports, such as a scheduled Claude task, and sent here with your sync key. Needs StrengthLog Premium with MCP connections on.",
       "demo": "Demo mode: made-up sessions, not from StrengthLog.",
       "status": "Status",
       "connected": "Connected, syncs every few hours",
       "notConnected": "Not connected",
+      "scheduled": "Sync key set: sessions arrive from your scheduled task",
+      "stored": "Stored",
+      "storedValue": "{count, plural, one {# session} other {# sessions}}",
+      "key": {
+        "create": "Create sync key",
+        "replace": "Replace sync key",
+        "replaceConfirm": "Make a new sync key? The old one stops working, so anything using it needs the new one.",
+        "shown": "Your sync key. It's shown once: copy it to the scheduled task now. It can only add sessions, nothing else."
+      },
       "syncing": "Syncing…",
       "lastSync": "Last sync",
       "unread": "{count, plural, one {# set} other {# sets}} couldn't be read: StrengthLog may have changed how it writes them.",
       "syncNow": "Sync now",
-      "connect": "Connect StrengthLog",
       "disconnect": "Disconnect",
       "disconnectConfirm": "Disconnect StrengthLog and delete every session stored from it here? StrengthLog itself keeps them.",
       "notice": {

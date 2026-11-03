@@ -283,10 +283,12 @@ function ConnectionCard({ demo, strength, notice }: { demo: boolean; strength: R
   const [pasting, setPasting] = useState(false);
   const [text, setText] = useState('');
   const [result, setResult] = useState<string | null>(null);
+  const [key, setKey] = useState<string | null>(null);
   const data = strength.data!;
   const connected = data.connected;
   const noticeText =
     notice === 'connected' ? t('training.link.notice.connected') : notice ? t('training.link.notice.failed', { code: notice }) : null;
+  const button = 'px-3 py-1.5 rounded-lg text-caption font-medium disabled:opacity-50';
 
   const paste = async () => {
     try {
@@ -294,14 +296,19 @@ function ConnectionCard({ demo, strength, notice }: { demo: boolean; strength: R
       setResult(t('training.link.paste.done', { sessions: formatInteger(r.sessions) }));
       setText('');
       setPasting(false);
-    } catch (err) {
+    } catch {
       setResult(t('training.link.paste.failed'));
     }
   };
 
+  const makeKey = async () => {
+    if (data.hasKey && !window.confirm(t('training.link.key.replaceConfirm'))) return;
+    setKey(await strength.newKey());
+  };
+
   return (
     <Card>
-      <CardHead title={t('training.link.title')} hint={connected ? undefined : t('training.link.hint')} />
+      <CardHead title={t('training.link.title')} hint={t('training.link.hint')} />
       <div className="px-5 pb-5 space-y-3">
         {noticeText && <p className="text-caption text-zinc-300">{noticeText}</p>}
         {demo ? (
@@ -309,45 +316,48 @@ function ConnectionCard({ demo, strength, notice }: { demo: boolean; strength: R
         ) : (
           <>
             <Row label={t('training.link.status')}>
-              {data.syncing ? t('training.link.syncing') : connected ? t('training.link.connected') : t('training.link.notConnected')}
+              {data.syncing
+                ? t('training.link.syncing')
+                : connected
+                  ? t('training.link.connected')
+                  : data.hasKey
+                    ? t('training.link.scheduled')
+                    : t('training.link.notConnected')}
             </Row>
             {data.lastSyncAt && <Row label={t('training.link.lastSync')}>{formatCivilLong(data.lastSyncAt.slice(0, 10))}</Row>}
+            <Row label={t('training.link.stored')}>{t('training.link.storedValue', { count: data.sessions.length })}</Row>
             {data.lastError && <p className="text-caption text-rose-400">{data.lastError}</p>}
             {data.unread > 0 && <p className="text-caption text-amber-400">{t('training.link.unread', { count: data.unread })}</p>}
             <div className="flex flex-wrap gap-2">
-              {connected ? (
-                <button
-                  type="button"
-                  disabled={data.syncing}
-                  onClick={() => void strength.sync()}
-                  className="px-3 py-1.5 rounded-lg bg-zinc-800 text-caption font-medium text-zinc-100 hover:bg-zinc-700 disabled:opacity-50"
-                >
+              {connected && (
+                <button type="button" disabled={data.syncing} onClick={() => void strength.sync()} className={`${button} bg-zinc-800 text-zinc-100 hover:bg-zinc-700`}>
                   {t('training.link.syncNow')}
                 </button>
-              ) : (
-                <a href="/auth/strengthlog" className="px-3 py-1.5 rounded-lg bg-white text-caption font-semibold text-black hover:bg-zinc-200">
-                  {t('training.link.connect')}
-                </a>
               )}
-              <button
-                type="button"
-                onClick={() => setPasting((p) => !p)}
-                className="px-3 py-1.5 rounded-lg bg-zinc-900 border border-zinc-800 text-caption text-zinc-300 hover:bg-zinc-800"
-              >
+              <button type="button" onClick={() => void makeKey()} className={`${button} bg-zinc-800 text-zinc-100 hover:bg-zinc-700`}>
+                {data.hasKey ? t('training.link.key.replace') : t('training.link.key.create')}
+              </button>
+              <button type="button" onClick={() => setPasting((p) => !p)} className={`${button} bg-zinc-900 border border-zinc-800 text-zinc-300 hover:bg-zinc-800`}>
                 {t('training.link.paste.open')}
               </button>
-              {(connected || data.sessions.length > 0) && (
+              {data.sessions.length > 0 && (
                 <button
                   type="button"
                   onClick={() => {
                     if (window.confirm(t('training.link.disconnectConfirm'))) void strength.disconnect();
                   }}
-                  className="px-3 py-1.5 rounded-lg text-caption text-zinc-500 hover:text-rose-400"
+                  className={`${button} text-zinc-500 hover:text-rose-400`}
                 >
                   {t('training.link.disconnect')}
                 </button>
               )}
             </div>
+            {key && (
+              <div className="space-y-1.5">
+                <p className="text-caption text-zinc-400">{t('training.link.key.shown')}</p>
+                <code className="block break-all bg-zinc-950 border border-zinc-800 rounded-lg p-2 text-caption text-zinc-100 select-all">{key}</code>
+              </div>
+            )}
             {pasting && (
               <div className="space-y-2">
                 <p className="text-caption text-zinc-500">{t('training.link.paste.hint')}</p>
@@ -358,12 +368,7 @@ function ConnectionCard({ demo, strength, notice }: { demo: boolean; strength: R
                   aria-label={t('training.link.paste.label')}
                   className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2 text-caption font-mono text-zinc-200"
                 />
-                <button
-                  type="button"
-                  disabled={!text.trim()}
-                  onClick={() => void paste()}
-                  className="px-3 py-1.5 rounded-lg bg-zinc-800 text-caption font-medium text-zinc-100 hover:bg-zinc-700 disabled:opacity-50"
-                >
+                <button type="button" disabled={!text.trim()} onClick={() => void paste()} className={`${button} bg-zinc-800 text-zinc-100 hover:bg-zinc-700`}>
                   {t('training.link.paste.save')}
                 </button>
               </div>

@@ -164,6 +164,16 @@ const MIGRATIONS: { id: number; name: string; sql: string }[] = [
       );
     `,
   },
+  {
+    id: 8,
+    name: 'strength sync key',
+    sql: `
+      -- A key the person hands to a scheduled job (such as a Claude task reading StrengthLog for
+      -- them) so it can send sessions in without a browser. Only its SHA-256 hash is stored, like
+      -- session ids; it can add sessions and nothing else.
+      ALTER TABLE strength_links ADD COLUMN ingest_key_hash bytea UNIQUE;
+    `,
+  },
 ];
 
 export function createDb(connectionString: string): Db {
