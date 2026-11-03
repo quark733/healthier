@@ -1,0 +1,127 @@
+#cloud-config
+# ---------------------------------------------------------------------------
+# Healthier på en Hetzner-server (Ubuntu 24.04)
+#
+# Byt halsa.example.se på raden DOMAIN= nedan mot din egen adress.
+# Klistra in hela filen i fältet "Cloud config" när du skapar servern.
+#
+# Vad den gör: installerar Docker, startar Healthier + databas, Caddy
+# (skaffar HTTPS-certifikat automatiskt), brandvägg, automatiska
+# säkerhetsuppdateringar och en daglig databasbackup på servern.
+# Inga Google-nycklar finns här; de läggs in efteråt med set-google.sh.
+# ---------------------------------------------------------------------------
+package_update: true
+package_upgrade: true
+packages:
+  - ca-certificates
+  - curl
+  - ufw
+  - unattended-upgrades
+
+write_files:
+  - path: /opt/healthier/setup.sh
+    permissions: '0700'
+    content: |
+      #!/bin/bash
+      set -euo pipefail
+
+      DOMAIN="halsa.example.se"   # <-- ÄNDRA TILL DIN ADRESS
+
+      cd /opt/healthier
+      timedatectl set-timezone Europe/Stockholm
+
+      # Docker (officiellt installationsskript)
+      curl -fsSL https://get.docker.com | sh
+
+      # Healthiers egna filer, direkt från projektet
+      curl -fsSL -o docker-compose.yml https://raw.githubusercontent.com/cbukenya/healthier/main/docker-compose.yml
+      curl -fsSL -o .env https://raw.githubusercontent.com/cbukenya/healthier/main/.env.example
+
+      # Hemligheter skapas här på servern och lämnar den aldrig
+      ENC=$(openssl rand -base64 32)
+      PGPW=$(openssl rand -hex 24)
+      sed -i "s|^APP_URL=.*|APP_URL=https://${DOMAIN}|" .env
+      sed -i "s|^BIND_ADDRESS=.*|BIND_ADDRESS=127.0.0.1|" .env
+      sed -i "s|^ENCRYPTION_KEY=.*|ENCRYPTION_KEY=${ENC}|" .env
+      sed -i "s|^POSTGRES_PASSWORD=.*|POSTGRES_PASSWORD=${PGPW}|" .env
+      sed -i "s|^DEMO_MODE=.*|DEMO_MODE=false|" .env
+      echo "DOMAIN=${DOMAIN}" >> .env
+      chmod 600 .env
+
+      # Caddy framför appen: HTTPS och omdirigering från http
+      cat > Caddyfile <<'EOF'
+      {$DOMAIN} {
+        encode gzip
+        header Strict-Transport-Security "max-age=31536000"
+        reverse_proxy app:3000
+      }
+      EOF
+
+      cat > docker-compose.override.yml <<'EOF'
+      services:
+        caddy:
+          image: caddy:2
+          restart: unless-stopped
+          environment:
+            DOMAIN: ${DOMAIN}
+          ports:
+            - "80:80"
+            - "443:443"
+          volumes:
+            - ./Caddyfile:/etc/caddy/Caddyfile:ro
+            - caddy-data:/data
+            - caddy-config:/config
+          depends_on:
+            - app
+      volumes:
+        caddy-data:
+        caddy-config:
+      EOF
+
+      # Brandvägg: bara SSH, http och https
+      ufw allow OpenSSH
+      ufw allow 80/tcp
+      ufw allow 443/tcp
+      ufw --force enable
+
+      # Automatiska säkerhetsuppdateringar
+      dpkg-reconfigure -f noninteractive unattended-upgrades
+
+      # Daglig databasbackup 03.15, sparas i 14 dagar
+      mkdir -p /opt/healthier/backups
+      chmod 700 /opt/healthier/backups
+      cat > /etc/cron.d/healthier-backup <<'EOF'
+      15 3 * * * root cd /opt/healthier && docker compose exec -T db pg_dump -U healthier healthier | gzip > backups/healthier-$(date +\%F).sql.gz && find backups -name '*.sql.gz' -mtime +14 -delete
+      EOF
+
+      # Startar allt. Appen väntar (startar om) tills Google-nycklarna finns.
+      docker compose pull
+      docker compose up -d
+
+      echo "KLAR" > /opt/healthier/SETUP_DONE
+
+  - path: /opt/healthier/set-google.sh
+    permissions: '0700'
+    content: |
+      #!/bin/bash
+      # Kör:  bash /opt/healthier/set-google.sh
+      # Frågar efter Google-uppgifterna och startar om appen.
+      set -euo pipefail
+      cd /opt/healthier
+      read -rp  "Google Client ID: " CID
+      read -rsp "Google Client secret (syns inte när du klistrar): " CSEC; echo
+      read -rp  "Tillåtna e-postadresser (kommaseparerade): " EMAILS
+      sed -i "s|^GOOGLE_CLIENT_ID=.*|GOOGLE_CLIENT_ID=${CID}|" .env
+      sed -i "s|^GOOGLE_CLIENT_SECRET=.*|GOOGLE_CLIENT_SECRET=${CSEC}|" .env
+      sed -i "s|^ALLOWED_EMAILS=.*|ALLOWED_EMAILS=${EMAILS}|" .env
+      docker compose up -d --force-recreate app
+      sleep 8
+      if docker compose ps app | grep -q "Up"; then
+        echo "Appen kör. Öppna https://$(grep '^DOMAIN=' .env | cut -d= -f2)"
+      else
+        echo "Något saknas. Senaste loggraderna:"
+        docker compose logs --tail 20 app
+      fi
+
+runcmd:
+  - [bash, /opt/healthier/setup.sh]
