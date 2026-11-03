@@ -47,8 +47,14 @@ export interface StrengthSession {
   rawDurationMin: number | null;
   bodyweightKg: number | null;
   exercises: StrengthExercise[];
-  /** Lines under the session that weren't an exercise, such as a comment or ratings. */
+  /** Lines under the session that weren't an exercise, such as a comment. */
   notes: string[];
+  /**
+   * How the person rated the session in StrengthLog, 0 to 10, when they did: form (how it felt),
+   * last night's sleep, everyday stress (reversed: 10 is none) and food in the last 24 hours
+   * (5 is balance).
+   */
+  ratings?: Partial<Record<'form' | 'sleep' | 'stress' | 'intake', number>>;
 }
 
 export interface ParsedSessions {
@@ -64,33 +70,38 @@ export interface ParsedSessions {
 }
 
 /** Longer than this is a timer left running, not a workout. */
-export const MAX_SESSION_MIN = 300;
+export const MAX_SESSION_MIN = 180;
 
 const NUMBER = String.raw`\d+(?:[.,]\d+)?`;
-const SESSION_LINE = new RegExp(String.raw`^(\d{4}-\d{2}-\d{2})\s{2,}(.*?)(?:\s{2,}(\d+)\s*min)?(?:\s{2,}bw\s+(${NUMBER}))?\s*$`);
+const SESSION_LINE = new RegExp(
+  String.raw`^(\d{4}-\d{2}-\d{2})\s{2,}(.*?)(?:\s{2,}(\d+)\s*min)?(?:\s{2,}bw\s+(${NUMBER}))?(?:\s{2,}(.+?))?\s*$`,
+);
+// "100x5", "100x3x3", "bwx8", "+10x5", "-20x6", "80x1f", "60x8 @8", "155x1 @7 x3", "37.5x15 max".
 const SET_TOKEN = new RegExp(
-  String.raw`^(bw)?\s*([+-])?\s*(${NUMBER})?\s*x\s*(max\s*)?(\d+)\s*(f)?(?:\s*x\s*(\d+))?(?:\s*@\s*(${NUMBER}))?$`,
+  String.raw`^(bw)?\s*([+-])?\s*(${NUMBER})?\s*x\s*(max\s*)?(\d+)\s*(f)?(?:\s*x\s*(\d+))?(?:\s*@\s*(${NUMBER}))?(?:\s*x\s*(\d+))?(\s+max)?$`,
   'i',
 );
+const RATING = /\b(form|sleep|stress|intake)\s+(\d+(?:[.,]\d+)?)\s*\/\s*10\b/g;
 
 const toNumber = (s: string) => Number(s.replace(',', '.'));
 
 /** One set as written: "100x5", "100x3x3", "bwx8", "+10x5", "-20x6", "60x8@8", "bw x max 12". */
 export function parseSet(token: string): StrengthSet | null {
-  const m = SET_TOKEN.exec(token.trim());
+  // A note on the set, such as "Vila: 2 min", is the person's own words about it.
+  const m = SET_TOKEN.exec(token.replace(/"[^"]*"/g, ' ').trim());
   if (!m) return null;
-  const [, bw, sign, load, max, reps, failed, count, rpe] = m;
+  const [, bw, sign, load, max, reps, failed, count, rpe, countAfter, maxAfter] = m;
   const bodyweight = !!bw || !!sign;
   if (!load && !bodyweight) return null;
   const magnitude = load ? toNumber(load) : null;
   return {
     loadKg: magnitude === null ? null : sign === '-' ? -magnitude : magnitude,
     reps: Number(reps),
-    count: count ? Number(count) : 1,
+    count: count ? Number(count) : countAfter ? Number(countAfter) : 1,
     bodyweight,
     failed: !!failed,
     rpe: rpe ? toNumber(rpe) : null,
-    max: !!max,
+    max: !!max || !!maxAfter,
   };
 }
 
@@ -99,7 +110,8 @@ function parseExerciseLine(line: string): StrengthExercise[] | null {
   const parts = line.split(/\s+\|\s+/);
   const out: StrengthExercise[] = [];
   for (const part of parts) {
-    const colon = part.lastIndexOf(': ');
+    // The first colon ends the name: a note on a set ("Vila: 2 min") has colons of its own.
+    const colon = part.indexOf(': ');
     if (colon <= 0) return null;
     const name = part.slice(0, colon).trim();
     const sets: StrengthSet[] = [];
@@ -146,7 +158,7 @@ export function parseSessions(text: string): ParsedSessions {
 
     const session = SESSION_LINE.exec(line);
     if (session && !/^\s/.test(raw)) {
-      const [, date, name, minutes, bw] = session;
+      const [, date, name, minutes, bw, rest] = session;
       const rawDuration = minutes ? Number(minutes) : null;
       current = {
         date: date as CivilDate,
@@ -157,6 +169,11 @@ export function parseSessions(text: string): ParsedSessions {
         exercises: [],
         notes: [],
       };
+      if (rest) {
+        const ratings: NonNullable<StrengthSession['ratings']> = {};
+        for (const r of rest.matchAll(RATING)) ratings[r[1] as keyof typeof ratings] = toNumber(r[2]);
+        if (Object.keys(ratings).length) current.ratings = ratings;
+      }
       result.sessions.push(current);
       continue;
     }

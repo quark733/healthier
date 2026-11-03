@@ -120,3 +120,37 @@ describe('strength load over weeks', () => {
     assert.deepEqual([bench.heaviest, bench.heaviestOn, bench.sessions], [105, '2026-09-08', 2]);
   });
 });
+
+describe('StrengthLog details seen in real replies', () => {
+  // Made up, in the shapes StrengthLog uses for ratings, rest notes, RPE with a count and max sets.
+  const text = `sessions | 2026-05-01..2026-05-03 | 2 of 2 | kg | warmup sets excluded
+
+2026-05-01  Friday: bench  83min  bw 90  sleep 6/10  form 7/10  stress 7/10 (10 = no stress)  intake 6/10 (5 = balance)
+  Bench Press: 60x8 "Vila: 1 min", 100x5 "Vila: 2 min", 140x1f
+  Rear Delt Fly: 5x8 @6 x2, 7x7 @8
+  Press: 40x20 max, 60x5x3
+
+2026-05-03  Sunday: nothing logged  0min  bw 90`;
+  const [bench, empty] = parseSessions(text).sessions;
+
+  it('reads the ratings on the session line and keeps the name whole', () => {
+    assert.equal(bench.name, 'Friday: bench');
+    assert.equal(bench.durationMin, 83);
+    assert.equal(bench.bodyweightKg, 90);
+    assert.deepEqual(bench.ratings, { sleep: 6, form: 7, stress: 7, intake: 6 });
+  });
+
+  it('reads sets with rest notes, an RPE before the count, and max sets', () => {
+    assert.deepEqual(bench.exercises.map((e) => e.name), ['Bench Press', 'Rear Delt Fly', 'Press']);
+    assert.deepEqual(bench.exercises[0].sets.map((s) => [s.loadKg, s.reps, s.failed]), [[60, 8, false], [100, 5, false], [140, 1, true]]);
+    assert.deepEqual(bench.exercises[1].sets.map((s) => [s.loadKg, s.reps, s.count, s.rpe]), [[5, 8, 2, 6], [7, 7, 1, 8]]);
+    assert.deepEqual(bench.exercises[2].sets.map((s) => [s.reps, s.max, s.count]), [[20, true, 1], [5, false, 3]]);
+    assert.equal(unreadCount(bench), 0);
+  });
+
+  it('keeps a session with no sets, and no duration when it says zero', () => {
+    assert.equal(empty.exercises.length, 0);
+    assert.equal(empty.durationMin, null);
+    assert.equal(empty.ratings, undefined);
+  });
+});
