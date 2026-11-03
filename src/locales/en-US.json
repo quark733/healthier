@@ -100,6 +100,7 @@
       "vitals": "Vitals",
       "body": "Body",
       "nutrition": "Nutrition",
+      "training": "Training",
       "cycle": "Cycle",
       "labs": "Labs",
       "settings": "Settings"
@@ -1572,6 +1573,109 @@
       "title": "Estimated energy balance",
       "hint": "Energy logged less energy burned, as your watch or phone estimates it. Both are estimates, so read the direction over weeks rather than any one day; a day logged only in part shows as a deficit it wasn't.",
       "series": "{bucket, select, day {logged less burned} week {weekly average, logged less burned} other {monthly average, logged less burned}}"
+    }
+  },
+  "training": {
+    "loading": "Loading your training…",
+    "loadFailed": "Couldn't load your training",
+    "tonnes": "{value} t",
+    "units": {
+      "sets": "sets",
+      "tonnes": "t"
+    },
+    "latest": {
+      "title": "Latest session, {date}",
+      "volume": "Volume",
+      "sets": "Sets",
+      "duration": "Time",
+      "exercise": "{sets} sets · top {top} kg",
+      "exerciseBodyweight": "{sets} sets · bodyweight"
+    },
+    "week": {
+      "title": "Last 7 days",
+      "hint": "Against a usual week: the average of the four weeks before.",
+      "sessions": "Sessions",
+      "sets": "Sets",
+      "volume": "Volume",
+      "vsUsual": "{now}<muted> · usual {usual}</muted>",
+      "vsUsualTonnes": "{now} t<muted> · usual {usual} t</muted>",
+      "verdict": "{verdict, select, more {{percent}% more sets than a usual week. A ramp this fast is where tiredness tends to build; easing back the week after is a common answer.} less {{percent}% fewer sets than a usual week: a lighter week.} other {About your usual number of sets.}}"
+    },
+    "overTime": {
+      "title": "Your training over time"
+    },
+    "span": {
+      "twelve": "12w",
+      "half": "6m",
+      "year": "1y",
+      "all": "All"
+    },
+    "summary": {
+      "title": "{weeks} weeks in numbers",
+      "sessions": "Sessions",
+      "sessionsValue": "{sessions}<muted> · {perWeek} a week</muted>",
+      "sets": "Sets",
+      "volume": "Volume"
+    },
+    "chips": {
+      "label": "Chart",
+      "volume": "Volume",
+      "sets": "Sets",
+      "lift": "1RM"
+    },
+    "volume": {
+      "title": "Volume each week",
+      "hint": "Kilograms lifted: load × reps × sets, warm-ups left out. Bodyweight exercises count only weight added."
+    },
+    "sets": {
+      "title": "Sets each week",
+      "hint": "Work sets per week. Sets, more than kilograms, are what training research counts volume in."
+    },
+    "lift": {
+      "title": "Estimated one-rep max",
+      "hint": "The best set of each session, as Epley's estimate: load × (1 + reps ÷ 30), from sets of 1 to 10 reps. An estimate, not a tested max.",
+      "choose": "Exercise",
+      "none": "No sets to estimate from",
+      "noneDetail": "A one-rep max is estimated from loaded sets of 1 to 10 reps in this span."
+    },
+    "perExercise": {
+      "title": "Sets per exercise",
+      "hint": "The last 7 days, against a usual week of the four before.",
+      "value": "{week}<muted> · usual {usual}</muted>",
+      "none": "No sets in the last five weeks."
+    },
+    "bests": {
+      "title": "Personal bests",
+      "hint": "Heaviest set, and the best estimated one-rep max, across everything stored.",
+      "value": "{heaviest} kg<muted> · 1RM {e1rm} · {date}</muted>",
+      "bodyweight": "Bodyweight only"
+    },
+    "link": {
+      "title": "StrengthLog",
+      "hint": "Connect StrengthLog to bring in every session with its sets, reps and weights. It needs StrengthLog Premium with MCP connections turned on (Profile → StrengthLog MCP), and reads only.",
+      "demo": "Demo mode: made-up sessions, not from StrengthLog.",
+      "status": "Status",
+      "connected": "Connected, syncs every few hours",
+      "notConnected": "Not connected",
+      "syncing": "Syncing…",
+      "lastSync": "Last sync",
+      "unread": "{count, plural, one {# set} other {# sets}} couldn't be read: StrengthLog may have changed how it writes them.",
+      "syncNow": "Sync now",
+      "connect": "Connect StrengthLog",
+      "disconnect": "Disconnect",
+      "disconnectConfirm": "Disconnect StrengthLog and delete every session stored from it here? StrengthLog itself keeps them.",
+      "notice": {
+        "connected": "StrengthLog is connected. The first sync reads your whole history and can take a minute.",
+        "failed": "Connecting to StrengthLog didn't work ({code})."
+      },
+      "paste": {
+        "open": "Paste sessions",
+        "hint": "Text from StrengthLog's get_sessions, such as what Claude reads from it. Sessions already stored are updated, not doubled.",
+        "label": "Sessions from StrengthLog",
+        "save": "Save sessions",
+        "done": "{sessions, plural, one {# session} other {# sessions}} saved.",
+        "failed": "Nothing could be read from that text."
+      }
     }
   },
   "cycle": {

@@ -138,6 +138,32 @@ const MIGRATIONS: { id: number; name: string; sql: string }[] = [
       ALTER TABLE users ADD COLUMN theme text CHECK (theme IN ('dark', 'light', 'system'));
     `,
   },
+  {
+    id: 7,
+    name: 'strength training',
+    sql: `
+      -- Strength sessions from StrengthLog (StrengthSession in src/pipeline/strength.ts), one row a
+      -- session: every exercise and set, as parsed from StrengthLog's MCP server or pasted text.
+      CREATE TABLE strength_sessions (
+        user_id     uuid NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+        key         text NOT NULL,
+        date        date NOT NULL,
+        value       jsonb NOT NULL,
+        imported_at timestamptz NOT NULL DEFAULT now(),
+        PRIMARY KEY (user_id, key)
+      );
+      CREATE INDEX strength_sessions_user_date_idx ON strength_sessions (user_id, date);
+
+      -- The link to StrengthLog: the OAuth client and tokens for its MCP server, as AES-256-GCM
+      -- ciphertext under ENCRYPTION_KEY like the Google tokens, and the outcome of the last sync.
+      CREATE TABLE strength_links (
+        user_id    uuid PRIMARY KEY REFERENCES users (id) ON DELETE CASCADE,
+        secrets    bytea,
+        status     jsonb NOT NULL DEFAULT '{}',
+        updated_at timestamptz NOT NULL DEFAULT now()
+      );
+    `,
+  },
 ];
 
 export function createDb(connectionString: string): Db {

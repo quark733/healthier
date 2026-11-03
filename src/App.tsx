@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { IntradaySample } from './types/health';
-import { ChevronLeft, ChevronRight, CircleDotDashed, FlaskConical, Footprints, Heart, Moon, RefreshCw, Settings, User, ShieldAlert, PersonStanding, Utensils } from 'lucide-react';
+import { ChevronLeft, ChevronRight, CircleDotDashed, FlaskConical, Footprints, Heart, Moon, RefreshCw, Settings, User, ShieldAlert, PersonStanding, Utensils, Dumbbell } from 'lucide-react';
 import { useAuth } from './hooks/useAuth';
 import { useInstance } from './hooks/useInstance';
 import { useHealth } from './hooks/useHealth';
@@ -27,6 +27,7 @@ import { SleepView } from './views/SleepView';
 import { VitalsView } from './views/VitalsView';
 import { BodyView } from './views/BodyView';
 import { NutritionView } from './views/NutritionView';
+import { TrainingView } from './views/TrainingView';
 import { SettingsView, type SectionId } from './views/SettingsView';
 import { LabsView } from './views/LabsView';
 import { AboutYourData, GoogleG, SignInConsent, SignInNote } from './views/SignInParts';
@@ -37,10 +38,12 @@ export default function App() {
   const [demo, setDemo] = useState(false);
   // Set by the server when a Google sign-in comes back with an error, e.g. ?auth_error=access_denied.
   const [authError] = useState(() => new URLSearchParams(window.location.search).get('auth_error'));
+  // Set by the server on the way back from connecting StrengthLog, e.g. ?strength=connected.
+  const [strengthNotice] = useState(() => new URLSearchParams(window.location.search).get('strength'));
 
   useEffect(() => {
-    if (authError) window.history.replaceState(null, '', window.location.pathname);
-  }, [authError]);
+    if (authError || strengthNotice) window.history.replaceState(null, '', window.location.pathname);
+  }, [authError, strengthNotice]);
 
   const health = useHealth({
     live: !!user && !needsReconnect,
@@ -114,9 +117,9 @@ export default function App() {
 
   useEffect(() => {
     if (user || demo) {
-      setView('today');
+      setView(strengthNotice ? 'training' : 'today');
     }
-  }, [user, demo]);
+  }, [user, demo, strengthNotice]);
 
   // A page opened from the bar starts at its top, not where the last one was left.
   useEffect(() => {
@@ -243,6 +246,7 @@ export default function App() {
             {view === 'vitals' && <VitalsView data={health.data} intraday={intradayDays} clock={demo ? DEMO_CLOCK : undefined} />}
             {view === 'body' && <BodyView data={health.data} gender={gender} onGender={chooseGender} intraday={intradayDays} clock={demo ? DEMO_CLOCK : undefined} />}
             {view === 'nutrition' && <NutritionView data={health.data} />}
+            {view === 'training' && today && <TrainingView demo={demo} today={today} notice={strengthNotice} />}
             {view === 'cycle' && <CycleView data={health.data} intraday={intradayDays} clock={demo ? DEMO_CLOCK : undefined} />}
             {view === 'labs' && <LabsView data={health.data} intraday={intradayDays} />}
             {view === 'settings' && (
@@ -313,7 +317,7 @@ export default function App() {
   );
 }
 
-type View = 'today' | 'activity' | 'sleep' | 'vitals' | 'body' | 'nutrition' | 'cycle' | 'labs' | 'settings';
+type View = 'today' | 'activity' | 'sleep' | 'vitals' | 'body' | 'nutrition' | 'training' | 'cycle' | 'labs' | 'settings';
 
 /**
  * Who's here, in the bar: their picture and first name, or Demo in demo mode. It opens the
@@ -482,6 +486,10 @@ function PageNav({ view, setView }: { view: View; setView: (view: View) => void 
         <NavButton
           active={view === 'nutrition'} onClick={() => setView('nutrition')}
           icon={<Utensils size={14} />} label={t('app.nav.nutrition')} color={DOMAIN.wellbeing.text}
+        />
+        <NavButton
+          active={view === 'training'} onClick={() => setView('training')}
+          icon={<Dumbbell size={14} />} label={t('app.nav.training')} color="text-orange-400"
         />
         {tracking && (
           <NavButton

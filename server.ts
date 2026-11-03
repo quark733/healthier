@@ -8,6 +8,8 @@ import { createDb, migrate, waitForDb } from './server/db';
 import { authRoutes } from './server/auth';
 import { apiRoutes } from './server/api';
 import { startScheduler } from './server/sync';
+import { strengthApiRoutes } from './server/strength-api';
+import { startStrengthScheduler, strengthAuthRoutes } from './server/strengthlog';
 import type { Deps } from './server/http';
 
 dotenv.config({ quiet: true });
@@ -37,6 +39,8 @@ async function startServer(config: Config) {
   });
 
   app.use(authRoutes(deps));
+  app.use(strengthAuthRoutes(deps));
+  app.use('/api', strengthApiRoutes(deps));
   app.use('/api', apiRoutes(deps));
   // Unknown API paths are errors, not the SPA's index.html.
   app.use('/api', (req, res) => {
@@ -76,6 +80,7 @@ async function startServer(config: Config) {
     console.log(`Server running on port ${config.port} (${config.appUrl})`);
   });
   startScheduler(deps);
+  startStrengthScheduler(deps);
 }
 
 let config: Config;

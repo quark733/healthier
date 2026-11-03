@@ -156,3 +156,16 @@ export interface ApiErrorBody {
   error: string;
   message?: string;
 }
+
+/** GET /api/strength: strength sessions from StrengthLog, and how the link to it is doing. */
+export interface StrengthResponse {
+  sessions: import('../pipeline/strength').StrengthSession[];
+  /** Signed in to StrengthLog, so the server syncs on its own. */
+  connected: boolean;
+  syncing: boolean;
+  lastSyncAt: string | null;
+  lastError: string | null;
+  /** Sets the parser couldn't read last time. */
+  unread: number;
+  via: 'sync' | 'paste' | null;
+}
