@@ -248,7 +248,7 @@ export default function App() {
             {view === 'vitals' && <VitalsView data={health.data} intraday={intradayDays} clock={demo ? DEMO_CLOCK : undefined} />}
             {view === 'body' && <BodyView data={health.data} gender={gender} onGender={chooseGender} intraday={intradayDays} clock={demo ? DEMO_CLOCK : undefined} />}
             {view === 'nutrition' && <NutritionView data={health.data} />}
-            {view === 'training' && today && <TrainingView demo={demo} today={today} notice={strengthNotice} />}
+            {view === 'training' && today && <TrainingView demo={demo} today={today} notice={strengthNotice} days={health.data?.days} />}
             {view === 'cycle' && <CycleView data={health.data} intraday={intradayDays} clock={demo ? DEMO_CLOCK : undefined} />}
             {view === 'labs' && <LabsView data={health.data} intraday={intradayDays} />}
             {view === 'settings' && (

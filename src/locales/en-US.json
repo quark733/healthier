@@ -840,6 +840,7 @@
     "training": {
       "title": "Training load",
       "none": "No StrengthLog sessions yet. Connect them on the Training page.",
+      "workoutsOnly": "{sessions, plural, one {# workout} other {# workouts}} in 7 days, {cardio} min of it other than strength. Connect StrengthLog on the Training page for sets and reps.",
       "setsWeek": "sets in 7 days",
       "vsUsual": "Usually about {usual} a week",
       "last": "Last session",
@@ -1646,6 +1647,16 @@
       "hamstrings": "Hamstrings and glutes",
       "biceps": "Biceps",
       "triceps": "Triceps"
+    },
+    "workouts": {
+      "title": "Workouts, last 14 days",
+      "hint": "Every session a watch or an app sent to Google Health, directly or through Apple Health: what kind, how long, and energy, heart rate and distance when they were measured. A StrengthLog session shows here with its time and name when StrengthLog shares them; its sets, reps and weights only come through the StrengthLog connection.",
+      "none": "No workouts in the last 14 days. Workouts arrive when a watch records them, or when an app such as StrengthLog shares them with Apple Health.",
+      "week": "Last 7 days",
+      "weekValue": "{sessions, plural, one {# workout} other {# workouts}} · {strength} strength · {cardio} min other",
+      "when": "{name} · {date}, {time}",
+      "kind": "{kind, select, strength {Strength training} run {Run} walk {Walk} bike {Ride} swim {Swim} cardio {Cardio} other {Workout}}",
+      "detail": "{minutes} min{kcal, select, none {} other { · {kcal} kcal}}{hr, select, none {} other { · {hr} bpm}}{km, select, none {} other { · {km} km}}"
     },
     "muscleWeek": {
       "title": "Sets per muscle, last 7 days",
@@ -2743,6 +2754,7 @@
     "active-zone-minutes": "Active Zone Minutes",
     "total-calories": "Total energy",
     "active-energy-burned": "Active energy",
+    "exercise": "Workouts",
     "sleep": "Sleep sessions",
     "heart-rate": "Heart rate (intraday)",
     "sleep-heart-rate-floor": "Resting heart rate (basal)",
@@ -2770,6 +2782,7 @@
     "active-zone-minutes": "Active Zone Minutes",
     "total-calories": "total energy",
     "active-energy-burned": "active energy",
+    "exercise": "workouts",
     "sleep": "sleep sessions",
     "heart-rate": "minute-by-minute heart rate",
     "sleep-heart-rate-floor": "basal resting heart rate",

@@ -15,6 +15,8 @@ import { useMediaQuery } from '../hooks/useMediaQuery';
 import { useStrength } from '../hooks/useStrength';
 import { setsPerMuscle } from '../pipeline/muscles';
 import { MuscleWeekRows } from './WellbeingCards';
+import { WorkoutsCard } from './WorkoutsCard';
+import type { DailyRecord } from '../types/health';
 
 /**
  * Strength training from StrengthLog: what each session lifted, how this week compares with the
@@ -33,7 +35,7 @@ type TrainingChart = 'volume' | 'sets' | 'lift';
 
 const tonnes = (kg: number) => fmtNum(kg / 1000, kg >= 100_000 ? 0 : 1);
 
-export function TrainingView({ demo, today, notice }: { demo: boolean; today: CivilDate; notice?: string | null }) {
+export function TrainingView({ demo, today, notice, days = [] }: { demo: boolean; today: CivilDate; notice?: string | null; days?: DailyRecord[] }) {
   const strength = useStrength(demo);
   const wide = useMediaQuery('(min-width: 768px)');
   const [span, setSpan] = useState<SpanId>('12');
@@ -57,9 +59,11 @@ export function TrainingView({ demo, today, notice }: { demo: boolean; today: Ci
   }
 
   const link = <ConnectionCard demo={demo} strength={strength} notice={notice} />;
+  const workouts = <WorkoutsCard days={days} today={today} />;
   if (!sessions.length) {
     return (
       <div className="space-y-3">
+        {workouts}
         {link}
       </div>
     );
@@ -146,6 +150,8 @@ export function TrainingView({ demo, today, notice }: { demo: boolean; today: Ci
           )}
         </div>
       </Card>
+
+      {workouts}
 
       <div className="flex items-center justify-between px-1 gap-3">
         <h2 className="text-section uppercase text-page-ink">{t('training.overTime.title')}</h2>

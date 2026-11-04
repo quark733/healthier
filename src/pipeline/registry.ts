@@ -5,6 +5,7 @@ import type { Goals } from './goals';
 import type { CycleLog } from './cycle';
 import type { SourcePrefs } from './sources';
 import { combineSleepPoints, parseSleepSession } from './sleep';
+import { parseWorkout, sameSession } from './workouts';
 
 /**
  * THE REGISTRY — the one place field names live.
@@ -264,6 +265,44 @@ export const STREAMS: StreamDescriptor[] = [
       if (v === null) return false;
       ctx.row.activeKcal = Math.round(v);
       mark(ctx, 'active-energy-burned');
+      return true;
+    },
+  },
+
+  {
+    dataType: 'exercise',
+    occasional: true,
+    label: 'Workouts',
+    domain: 'movement',
+    mode: 'list',
+    container: 'exercise',
+    scope: 'activity',
+    pageSize: 25,
+    note:
+      'Exercise sessions, filed under the day they began, from startTime + startUtcOffset. The same ' +
+      'session written by two apps (StrengthLog through Apple Health and a watch, say) counts once: ' +
+      'the one with the most detail is kept.',
+    rank: (c) => (c?.metricsSummary?.averageHeartRateBeatsPerMinute ? 2 : 0) + (c?.displayName ? 1 : 0),
+    dateOf(c) {
+      return civilFromInstant(c?.interval?.startTime, c?.interval?.startUtcOffset)?.date ?? null;
+    },
+    apply(ctx, c) {
+      const w = parseWorkout(c, ctx.source);
+      if (!w) return false;
+      const list = (ctx.row.workouts ??= []);
+      const twin = list.find((x) => sameSession(x, w));
+      if (twin) {
+        // Keep the better copy, and take what only the other one knows.
+        twin.name ??= w.name;
+        twin.kcal ??= w.kcal;
+        twin.avgHr ??= w.avgHr;
+        twin.distanceKm ??= w.distanceKm;
+        if (twin.kind === 'other' && w.kind !== 'other') Object.assign(twin, { kind: w.kind, type: w.type });
+      } else {
+        list.push(w);
+        list.sort((a, b) => a.startIso.localeCompare(b.startIso));
+      }
+      mark(ctx, 'exercise');
       return true;
     },
   },

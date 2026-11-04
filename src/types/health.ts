@@ -104,6 +104,28 @@ export interface HeartRateZones {
   peak: number;
 }
 
+export type WorkoutKind = 'strength' | 'run' | 'walk' | 'bike' | 'swim' | 'cardio' | 'other';
+
+/** One exercise session as Google Health has it (pipeline/workouts.ts). */
+export interface Workout {
+  startIso: string;
+  endIso: string;
+  /** Local minutes after midnight the session began. */
+  startMinute: number;
+  offsetSeconds: number;
+  /** Google's exercise type, as sent (RUNNING, STRENGTH_TRAINING, …). */
+  type: string;
+  kind: WorkoutKind;
+  /** The session's own name when the recording app gave one. */
+  name: string | null;
+  minutes: number;
+  kcal: number | null;
+  avgHr: number | null;
+  distanceKm: number | null;
+  /** Which device or app recorded it. */
+  source: string | null;
+}
+
 export interface DailyRecord {
   date: CivilDate;
 
@@ -123,6 +145,9 @@ export interface DailyRecord {
   // sleep — the main session for this morning, naps excluded
   sleep: SleepSession | null;
   naps: SleepSession[];
+
+  /** Exercise sessions that began on this day, earliest first. */
+  workouts?: Workout[];
 
   // cardiovascular & respiratory
   ecg?: string[];

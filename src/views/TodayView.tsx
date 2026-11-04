@@ -303,6 +303,7 @@ export function TodayView({
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3 items-stretch">
         <FoodToday day={last} targets={targets} today={today} />
         <TrainingRecovery
+          days={days}
           sessions={strength.data?.sessions ?? []}
           today={today}
           sleepZ={slDay?.date && isRecent(slDay.date, today) ? sleepCmp.z : null}

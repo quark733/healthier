@@ -1,3 +1,4 @@
+import { workoutWeek } from '../pipeline/workouts';
 import React from 'react';
 import { Dumbbell, Scale, Utensils } from 'lucide-react';
 import { t, type MessageKey } from '../i18n';
@@ -145,13 +146,18 @@ function standouts(week: MuscleWeek[]) {
  * and the person's own ratings in StrengthLog when they gave any. It describes load, not the body:
  * how someone actually recovers depends on sleep, food, stress and more than any count shows.
  */
-export function TrainingRecovery({ sessions, today, sleepZ }: { sessions: StrengthSession[]; today: CivilDate; sleepZ?: number | null }) {
+export function TrainingRecovery({ sessions, today, sleepZ, days = [] }: { sessions: StrengthSession[]; today: CivilDate; sleepZ?: number | null; days?: DailyRecord[] }) {
   if (!sessions.length) {
+    const week = workoutWeek(days, today);
     return (
       <Card className="flex flex-col">
         <div className="px-4 pt-4 pb-4 flex flex-col gap-2">
           <Head title={t('today.training.title')} icon={<Dumbbell size={14} className="text-orange-400" />} />
-          <p className="text-caption text-zinc-500">{t('today.training.none')}</p>
+          <p className="text-caption text-zinc-500">
+            {week.sessions
+              ? t('today.training.workoutsOnly', { sessions: week.sessions, cardio: formatInteger(week.cardioMinutes) })
+              : t('today.training.none')}
+          </p>
         </div>
       </Card>
     );

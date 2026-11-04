@@ -1,3 +1,4 @@
+import { demoStrengthSessions } from './strength-demo';
 import { addDays, daysBetween, isoWeekdayIndex, startOfCivilDay, type CivilDate } from '../lib/date';
 import {
   buildFixturePayloads, iso, listPoint, newestFirst, rollupPoint, sampleTime, type FixtureDay, type FixturePayloads,
@@ -42,6 +43,7 @@ const MAX_HR = 220 - AGE;
 
 const WATCH = { recordingMethod: 'DERIVED', device: { displayName: 'Google Fitbit Air' }, platform: 'FITBIT' };
 const WATCH_PASSIVE = { recordingMethod: 'PASSIVELY_MEASURED', device: { displayName: 'Google Fitbit Air' }, platform: 'FITBIT' };
+const PHONE_APP = { recordingMethod: 'ACTIVELY_RECORDED', application: { packageName: 'com.strengthlog.app' }, platform: 'HEALTH_CONNECT' }; // i18n-ignore
 const SCALE = { recordingMethod: 'PASSIVELY_MEASURED', device: { displayName: 'Smart scale', formFactor: 'SCALE' }, platform: 'FITBIT' };
 
 /** A small seeded generator (mulberry32): the same numbers on every run. */
@@ -273,6 +275,40 @@ function demoMeals(days: DemoDay[]): { date: CivilDate; kcal: number; protein: n
   return out;
 }
 
+/**
+ * The demo person's workouts: the runs and hikes their days already hold, from the watch, and the
+ * strength sessions on the Training page, as StrengthLog writes them through to Google.
+ */
+function demoWorkouts(days: DemoDay[]) {
+  const span = (date: CivilDate, at: number, minutes: number) => ({
+    startTime: iso(instant(date, at)), startUtcOffset: offsetOn(date),
+    endTime: iso(instant(date, at + minutes)), endUtcOffset: offsetOn(date),
+  });
+  const inWindow = new Set(days.map((d) => d.date));
+  const points: unknown[] = [];
+  for (const d of days) {
+    if (d.workout === 'run') {
+      points.push(listPoint(WATCH, 'exercise', {
+        interval: span(d.date, 18 * 60 + 10, 34), exerciseType: 'RUNNING', activeDuration: `${33 * 60}s`,
+        metricsSummary: { caloriesKcal: 360, distanceMillimeters: 5_600_000, averageHeartRateBeatsPerMinute: '151' },
+      }));
+    } else if (d.workout === 'hike') {
+      points.push(listPoint(WATCH, 'exercise', {
+        interval: span(d.date, 10 * 60, 150), exerciseType: 'HIKING',
+        metricsSummary: { caloriesKcal: 820, distanceMillimeters: 9_800_000, averageHeartRateBeatsPerMinute: '118' },
+      }));
+    }
+  }
+  for (const s of demoStrengthSessions()) {
+    if (!inWindow.has(s.date)) continue;
+    points.push(listPoint(PHONE_APP, 'exercise', {
+      interval: span(s.date, 17 * 60, s.durationMin ?? 55), exerciseType: 'STRENGTH_TRAINING', displayName: s.name ?? undefined,
+      metricsSummary: { caloriesKcal: 290 },
+    }));
+  }
+  return points.sort((a: any, b: any) => a.exercise.interval.startTime.localeCompare(b.exercise.interval.startTime));
+}
+
 /** A night's stages, lights-out to waking, in sleep cycles of about 90 minutes: deep early, REM late. */
 function stagesFor(day: DemoDay, start: number, seed: number) {
   const r = seeded(seed);
@@ -467,6 +503,7 @@ export function buildDemoPayloads(): FixturePayloads {
     dataPoints: [listPoint(WATCH_PASSIVE, 'irregularRhythmNotification', { sampleTime: sampleTime(iso(instant(irn, 3 * 60 + 12)), irn, offsetOn(irn)) })],
   };
   out['electrocardiogram'] = { dataPoints: [] };
+  out['exercise'] = { dataPoints: newestFirst(demoWorkouts(days)) };
   out['nutrition-log'] = {
     rollupDataPoints: newestFirst(demoMeals(days).map((m) => rollupPoint(m.date, 'nutritionLog', {
       energy: { kcalSum: m.kcal },
