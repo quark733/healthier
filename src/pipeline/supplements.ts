@@ -1,5 +1,6 @@
 import { rangeFor, type LabResult } from './bloodwork';
 import type { Gender } from './registry';
+import type { CarePlan } from './care';
 
 /**
  * Supplements, judged from the person's own blood results and their goal (keep muscle and
@@ -21,9 +22,13 @@ import type { Gender } from './registry';
  *   iron       Never without a measured need: with haemoglobin already high it's the wrong direction.
  *   b12        Above the range usually means supplements or fortified drinks already cover it.
  *   magnesium  No benefit shown when blood levels are normal.
+ *
+ * On an anticoagulant (apixaban, rivaroxaban, warfarin…), from the patient leaflets: ibuprofen,
+ * naproxen and aspirin raise the risk of bleeding; St John's wort, glucosamine and fish oil can
+ * interact; ask the pharmacist before any supplement or herbal remedy.
  */
 
-export type SupplementId = 'creatine' | 'vitaminD' | 'caffeine' | 'ldlFoods' | 'omega3' | 'iron' | 'b12' | 'magnesium';
+export type SupplementId = 'creatine' | 'vitaminD' | 'caffeine' | 'ldlFoods' | 'omega3' | 'iron' | 'b12' | 'magnesium' | 'painkillers' | 'herbal';
 export type SupplementVerdict = 'take' | 'consider' | 'timing' | 'skip' | 'avoid' | 'test';
 
 export interface SupplementAdvice {
@@ -33,7 +38,8 @@ export interface SupplementAdvice {
   from: LabResult | null;
 }
 
-export function supplementAdvice(latest: Map<string, LabResult>, gender: Gender | null): SupplementAdvice[] {
+export function supplementAdvice(latest: Map<string, LabResult>, gender: Gender | null, plan?: CarePlan): SupplementAdvice[] {
+  const anticoagulant = !!plan?.anticoagulant;
   const get = (id: string) => latest.get(id) ?? null;
   const above = (r: LabResult | null) => {
     if (!r) return false;
@@ -55,7 +61,7 @@ export function supplementAdvice(latest: Map<string, LabResult>, gender: Gender 
   out.push({ id: 'ldlFoods', verdict: !ldl && !apob ? 'test' : lipidsHigh ? 'consider' : 'skip', from: apob ?? ldl });
 
   const tg = get('tg');
-  out.push({ id: 'omega3', verdict: tg && tg.value >= 1.7 ? 'consider' : 'skip', from: tg });
+  out.push({ id: 'omega3', verdict: anticoagulant ? 'avoid' : tg && tg.value >= 1.7 ? 'consider' : 'skip', from: tg });
 
   const hb = get('hb');
   const ferritin = get('ferritin');
@@ -67,6 +73,11 @@ export function supplementAdvice(latest: Map<string, LabResult>, gender: Gender 
 
   const mg = get('magnesium');
   if (mg && !above(mg) && (rangeFor(mg, gender)[0] ?? -Infinity) <= mg.value) out.push({ id: 'magnesium', verdict: 'skip', from: mg });
+
+  if (anticoagulant) {
+    out.push({ id: 'painkillers', verdict: 'avoid', from: null });
+    out.push({ id: 'herbal', verdict: 'avoid', from: null });
+  }
 
   return out;
 }

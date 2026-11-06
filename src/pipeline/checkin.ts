@@ -14,6 +14,8 @@ export type Checkin = Record<CheckinItem, number> & {
   date: CivilDate;
   /** Coffee, an energy drink or pre-workout within about 6 hours of going to bed the evening before. */
   lateCaffeine?: boolean;
+  /** Pain, swelling or warmth in one calf that isn't training soreness: asked of people with a clot history. */
+  calf?: boolean;
 };
 
 const isDate = (v: unknown): v is CivilDate => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v) && !Number.isNaN(Date.parse(v));
@@ -29,6 +31,7 @@ export function readCheckin(raw: unknown): Checkin | null {
     out[k] = v;
   }
   if (typeof o.lateCaffeine === 'boolean') out.lateCaffeine = o.lateCaffeine;
+  if (typeof o.calf === 'boolean') out.calf = o.calf;
   return out;
 }
 

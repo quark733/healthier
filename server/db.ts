@@ -235,6 +235,28 @@ const MIGRATIONS: { id: number; name: string; sql: string }[] = [
       CREATE INDEX user_measurements_user_time ON user_measurements (user_id, taken_at);
     `,
   },
+  {
+    id: 13,
+    name: 'care plan and health log',
+    sql: `
+      -- The person's care plan (CarePlan in src/pipeline/care.ts), one per person.
+      CREATE TABLE user_care_plan (
+        user_id    uuid PRIMARY KEY REFERENCES users (id) ON DELETE CASCADE,
+        value      jsonb NOT NULL,
+        updated_at timestamptz NOT NULL DEFAULT now()
+      );
+      -- Doses taken and days tagged with events (CareEvent in src/pipeline/care.ts).
+      CREATE TABLE user_events (
+        id      bigserial PRIMARY KEY,
+        user_id uuid NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+        date    date NOT NULL,
+        at      timestamptz NOT NULL,
+        kind    text NOT NULL,
+        value   jsonb NOT NULL
+      );
+      CREATE INDEX user_events_user_date ON user_events (user_id, date);
+    `,
+  },
 ];
 
 export function createDb(connectionString: string): Db {

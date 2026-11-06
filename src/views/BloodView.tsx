@@ -3,6 +3,7 @@ import { hasMessage, t, type MessageKey } from '../i18n';
 import { formatCivilYear, formatInteger, formatList } from '../i18n/format';
 import { daysBetween, type CivilDate } from '../lib/date';
 import { useLabs } from '../hooks/useLabs';
+import { useCare } from '../hooks/useCare';
 import { pdfLines } from '../lib/pdfText';
 import {
   BLOOD_GROUPS, MARKERS, histories, latestRound, missingMarkers, rangeFor, statusOf,
@@ -122,6 +123,7 @@ function MarkerRow({ h, gender, explainStatus = false }: { h: MarkerHistory; gen
 
 export function BloodView({ demo, today, gender }: { demo: boolean; today: CivilDate; gender: Gender | null }) {
   const labs = useLabs(demo);
+  const care = useCare();
   const all = useMemo(() => histories(labs.results), [labs.results]);
   const round = latestRound(labs.results);
   const latestDate = round?.date ?? null;
@@ -132,7 +134,7 @@ export function BloodView({ demo, today, gender }: { demo: boolean; today: Civil
     .sort((a, b) => (a.s === 'watch' ? 1 : 0) - (b.s === 'watch' ? 1 : 0));
   const outside = flagged.filter((x) => x.s !== 'watch').length;
   const latestByMarker = new Map(all.filter((h) => h.marker).map((h) => [h.marker!, h.latest]));
-  const advice = supplementAdvice(latestByMarker, gender);
+  const advice = supplementAdvice(latestByMarker, gender, care.plan);
   const missing = missingMarkers(latestTest);
   const ageDays = latestDate ? daysBetween(latestDate, today) : null;
 
@@ -159,8 +161,13 @@ export function BloodView({ demo, today, gender }: { demo: boolean; today: Civil
         <Card>
           <CardHead title={t('blood.flagged.title')} hint={t('blood.flagged.hint')} />
           <div className="px-5 pb-4">
-            {flagged.map(({ h }) => (
-              <MarkerRow key={h.marker ?? h.name} h={h} gender={gender} explainStatus />
+            {flagged.map(({ h, s }) => (
+              <React.Fragment key={h.marker ?? h.name}>
+                <MarkerRow h={h} gender={gender} explainStatus />
+                {care.plan.clotHistory && s === 'high' && (h.marker === 'hb' || h.marker === 'hct') && (
+                  <p className="text-caption text-amber-300/90 -mt-1 mb-2 leading-relaxed">{t('blood.clotNote')}</p>
+                )}
+              </React.Fragment>
             ))}
           </div>
         </Card>
