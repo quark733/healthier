@@ -7,8 +7,9 @@ import type { Checkin } from '../pipeline/checkin';
 function demoCheckins(today: CivilDate): Checkin[] {
   return Array.from({ length: 28 }, (_, i) => {
     const date = addDays(today, i - 28);
+    const late = i % 4 === 1;
     const rough = i % 9 === 4;
-    return { date, sleep: rough ? 2 : 4, fatigue: rough ? 2 : 4, soreness: i % 3 === 0 ? 3 : 4, stress: 3, mood: rough ? 3 : 4 };
+    return { date, sleep: rough ? 2 : late ? 3 : 4, fatigue: rough ? 2 : 4, soreness: i % 3 === 0 ? 3 : 4, stress: 3, mood: rough ? 3 : 4, lateCaffeine: late };
   });
 }
 

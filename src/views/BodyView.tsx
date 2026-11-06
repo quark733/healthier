@@ -15,6 +15,7 @@ import type { SyncResult } from '../pipeline/sync';
 import type { Gender } from '../pipeline/registry';
 import { bucketForSeries, groupSeries } from '../pipeline/aggregate';
 import { SpanSelector, spanSummaryTitle, useSpan } from '../ui/span';
+import { MeasurementsCard } from './MeasurementsCards';
 import { useHistory } from '../hooks/useHistory';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 import { InsightsCarousel } from '../components/InsightsCarousel';
@@ -95,6 +96,7 @@ export function BodyView({ data, gender, onGender, clock, intraday }: {
             detail={t('body.empty.detail')}
           />
         </Card>
+        {today && <MeasurementsCard today={today} heightCm={heightCm} />}
       </div>
     );
   }
@@ -240,6 +242,8 @@ export function BodyView({ data, gender, onGender, clock, intraday }: {
           {shownChart.card}
         </>
       )}
+
+      {today && <MeasurementsCard today={today} heightCm={heightCm} />}
 
       <InsightsCarousel observations={insights} page="body" />
     </div>

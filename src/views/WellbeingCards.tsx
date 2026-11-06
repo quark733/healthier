@@ -4,7 +4,7 @@ import { Dumbbell, Scale, Utensils } from 'lucide-react';
 import { t, type MessageKey } from '../i18n';
 import { formatCivilLong, formatHours, formatInteger, formatList } from '../i18n/format';
 import type { Dose } from '../pipeline/trainingDose';
-import { CHECKIN_ITEMS, judgeCheckin, type Checkin, type CheckinItem } from '../pipeline/checkin';
+import { CHECKIN_ITEMS, caffeineEffect, judgeCheckin, type Checkin, type CheckinItem } from '../pipeline/checkin';
 import { addDays, daysBetween, type CivilDate } from '../lib/date';
 import { bodyComposition, series, weightTrend } from '../pipeline/derive';
 import { suggest, type Food } from '../pipeline/foods';
@@ -358,23 +358,26 @@ export function TrainingDoseCard({ dose, hasSessions }: { dose: Dose; hasSession
  * This morning's check-in: five questions, 1 to 5, before the watch's numbers. Asked until it's
  * answered, then a summary against the person's usual with a way to change it.
  */
-export function CheckinCard({ checkins, today, save }: { checkins: Checkin[]; today: CivilDate; save: (c: Checkin) => Promise<void> }) {
+export function CheckinCard({ checkins, today, save, days = [] }: { checkins: Checkin[]; today: CivilDate; save: (c: Checkin) => Promise<void>; days?: DailyRecord[] }) {
   const done = checkins.find((c) => c.date === today) ?? null;
   const [editing, setEditing] = React.useState(false);
   const [draft, setDraft] = React.useState<Partial<Record<CheckinItem, number>>>({});
+  const [late, setLate] = React.useState<boolean | null>(null);
   const [saving, setSaving] = React.useState(false);
   const verdict = judgeCheckin(checkins, today);
-  const complete = CHECKIN_ITEMS.every((k) => draft[k]);
+  const complete = CHECKIN_ITEMS.every((k) => draft[k]) && late !== null;
+  const caffeine = caffeineEffect(checkins, (date) => days.find((d) => d.date === date)?.sleep?.minutesAsleep ?? null, today);
 
   const start = () => {
     setDraft(done ? { ...done } : {});
+    setLate(done?.lateCaffeine ?? null);
     setEditing(true);
   };
   const submit = async () => {
     if (!complete) return;
     setSaving(true);
     try {
-      await save({ date: today, ...(draft as Record<CheckinItem, number>) });
+      await save({ date: today, ...(draft as Record<CheckinItem, number>), lateCaffeine: late ?? undefined });
       setEditing(false);
     } finally {
       setSaving(false);
@@ -397,6 +400,18 @@ export function CheckinCard({ checkins, today, save }: { checkins: Checkin[]; to
           <button type="button" onClick={start} className="ml-auto text-caption text-zinc-400 hover:text-zinc-200 underline underline-offset-2">
             {t('today.checkin.change')}
           </button>
+          {caffeine && (
+            <p className="w-full text-note text-zinc-500">
+              {t('today.checkin.caffeineEffect', {
+                with: fmtNum(caffeine.ratingWith, 1),
+                without: fmtNum(caffeine.ratingWithout, 1),
+                withN: caffeine.withN,
+                withoutN: caffeine.withoutN,
+                minutes: caffeine.minutesWith === null || caffeine.minutesWithout === null ? 'none' : formatInteger(Math.abs(Math.round(caffeine.minutesWithout - caffeine.minutesWith))),
+                direction: caffeine.minutesWith !== null && caffeine.minutesWithout !== null && caffeine.minutesWith > caffeine.minutesWithout ? 'more' : 'less',
+              })}
+            </p>
+          )}
         </div>
       </Card>
     );
@@ -447,6 +462,25 @@ export function CheckinCard({ checkins, today, save }: { checkins: Checkin[]; to
               {draft[k] !== undefined && <p className="w-full text-note text-zinc-500 -mt-1">{t('today.checkin.anchor', { item: k, value: draft[k]! })}</p>}
             </div>
           ))}
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <span className="text-caption text-zinc-300">{t('today.checkin.lateCaffeine')}</span>
+            <div className="flex gap-1.5" role="radiogroup" aria-label={t('today.checkin.lateCaffeine')}>
+              {[true, false].map((v) => (
+                <button
+                  key={String(v)}
+                  type="button"
+                  role="radio"
+                  aria-checked={late === v}
+                  onClick={() => setLate(v)}
+                  className={`px-3 h-9 rounded-lg text-caption border ${
+                    late === v ? 'bg-zinc-100 text-zinc-900 border-zinc-100' : 'border-zinc-700 text-zinc-300 hover:border-zinc-500'
+                  }`}
+                >
+                  {t('today.checkin.yesNo', { value: v ? 'yes' : 'no' })}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
         <div className="mt-4 flex items-center gap-3">
           <button

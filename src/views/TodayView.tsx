@@ -25,6 +25,7 @@ import { Tile } from '../ui/Tile';
 import { useTargets } from '../hooks/useTargets';
 import { useStrength } from '../hooks/useStrength';
 import { CheckinCard, FoodToday, TrainingDoseCard, WeightGoal } from './WellbeingCards';
+import { MeasurementsRow } from './MeasurementsCards';
 import { useCheckins } from '../hooks/useCheckins';
 import { judgeCheckin } from '../pipeline/checkin';
 import { trainingDose } from '../pipeline/trainingDose';
@@ -102,7 +103,8 @@ export function TodayView({
   return (
     <div className="space-y-3">
       {/* First thing in the morning: how the night felt, before the watch's verdict. */}
-      <CheckinCard checkins={checkins.checkins} today={today} save={checkins.save} />
+      <CheckinCard checkins={checkins.checkins} today={today} save={checkins.save} days={days} />
+      <MeasurementsRow today={today} heightCm={data.profile.heightCm} />
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 items-start">
         {/* Phones get the compact battery and four tiles; wider screens the full card and its column. */}

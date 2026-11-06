@@ -220,6 +220,21 @@ const MIGRATIONS: { id: number; name: string; sql: string }[] = [
       );
     `,
   },
+  {
+    id: 12,
+    name: 'hand-taken measurements',
+    sql: `
+      -- Blood pressure and waist, taken by hand (pipeline/measurements.ts).
+      CREATE TABLE user_measurements (
+        id       bigserial PRIMARY KEY,
+        user_id  uuid NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+        kind     text NOT NULL,
+        taken_at timestamptz NOT NULL,
+        value    jsonb NOT NULL
+      );
+      CREATE INDEX user_measurements_user_time ON user_measurements (user_id, taken_at);
+    `,
+  },
 ];
 
 export function createDb(connectionString: string): Db {

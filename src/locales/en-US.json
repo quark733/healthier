@@ -524,6 +524,35 @@
       }
     }
   },
+  "measure": {
+    "title": "Blood pressure and waist",
+    "hint": "Taken by hand. Blood pressure: sit for 5 minutes first, cuff on the bare upper arm at heart height, two readings a minute apart, both saved. The European protocol is morning and evening for 7 days, the first day left out; a home average of 135/85 or more is high (ESH 2023). After that, one measuring week a month is enough. Waist: standing, in the morning before eating, at the navel, breathing out normally. Under half your height is the healthy range (NICE 2022).",
+    "add": "Add",
+    "close": "Close",
+    "none": "No readings yet",
+    "recent": "Latest readings",
+    "delete": "Delete reading",
+    "failed": "Couldn't save. Check the numbers and try again.",
+    "bp": {
+      "label": "Blood pressure, 7 days",
+      "sys": "Systolic",
+      "dia": "Diastolic",
+      "pulse": "Pulse",
+      "save": "Save reading",
+      "value": "{sys}/{dia} mmHg ({n, plural, one {# reading} other {# readings}})",
+      "reading": "{sys}/{dia}{pulse, select, none {} other { · {pulse} bpm}}",
+      "verdict": "{high, select, yes {Your home average is at or above {lineSys}/{lineDia}, the European line for high blood pressure at home. Measure a full week by the protocol, and take the readings to your doctor.} other {Under {lineSys}/{lineDia}, the European line for high blood pressure at home.}}{before, select, none {} other { Four weeks ago: {before}.}} Losing weight lowers it, by about 1 mmHg per kilogram in trials."
+    },
+    "waist": {
+      "label": "Waist",
+      "cm": "Waist, cm",
+      "save": "Save waist",
+      "value": "{cm} cm{change, select, none {} other {, {change} cm in 4 weeks}}",
+      "reading": "{cm} cm waist",
+      "ratio": "Waist to height",
+      "ratioValue": "{ratio}{band, select, healthy {, healthy (under 0.5)} increased {, increased risk (0.5–0.59)} high {, high risk (0.6 or more)} other {}}"
+    }
+  },
   "ui": {
     "hintMore": "About this card",
     "hintLess": "Hide the explanation",
@@ -1276,6 +1305,9 @@
         "mood": "Mood"
       },
       "anchor": "{item, select, sleep {{value, select, 1 {Hardly slept} 2 {Restless} 3 {Okay} 4 {Good} other {Very restful}}} fatigue {{value, select, 1 {Exhausted} 2 {More tired than normal} 3 {Normal} 4 {Fresh} other {Very fresh}}} soreness {{value, select, 1 {Very sore} 2 {Sore, it's in the way} 3 {Some soreness} 4 {Barely} other {None}}} stress {{value, select, 1 {Very stressed} 2 {Stressed} 3 {Normal} 4 {Relaxed} other {Very relaxed}}} other {{value, select, 1 {Very low} 2 {Low} 3 {Normal} 4 {Good} other {Very good}}}}",
+      "lateCaffeine": "Coffee, energy drink or pre-workout within 6 h of bed last night?",
+      "yesNo": "{value, select, yes {Yes} other {No}}",
+      "caffeineEffect": "Your sleep after late caffeine: {with}/5, against {without}/5 without ({withN} and {withoutN} mornings){minutes, select, none {.} other {; the watch measured {minutes} min {direction, select, more {more} other {less}} sleep.}}",
       "save": "Save",
       "cancel": "Cancel",
       "change": "Change",
