@@ -4,8 +4,9 @@ import { Dumbbell, Scale, Utensils } from 'lucide-react';
 import { t, type MessageKey } from '../i18n';
 import { formatCivilLong, formatHours, formatInteger, formatList } from '../i18n/format';
 import type { Dose } from '../pipeline/trainingDose';
+import { CHECKIN_ITEMS, judgeCheckin, type Checkin, type CheckinItem } from '../pipeline/checkin';
 import { addDays, daysBetween, type CivilDate } from '../lib/date';
-import { series, weightTrend } from '../pipeline/derive';
+import { bodyComposition, series, weightTrend } from '../pipeline/derive';
 import { suggest, type Food } from '../pipeline/foods';
 import { LANDMARKS, setsPerMuscle, type Muscle, type MuscleWeek } from '../pipeline/muscles';
 import { recentLoad, sessionSets, sessionVolume, type StrengthSession } from '../pipeline/strength';
@@ -209,6 +210,10 @@ export function WeightGoal({ days, targets, today }: { days: DailyRecord[]; targ
   const trend = weightTrend(weights.slice(-35));
   const pace = weightPace(latest?.value ?? null, targets, today);
   const trendPct = trend && latest?.value ? (-100 * trend.kgPerWeek) / latest.value : null;
+  // Fat and lean from the scale's body-fat readings, over the last 8 weeks.
+  const comp = bodyComposition(days.filter((d) => d.date > addDays(today, -56)));
+  const lost = comp ? -(comp.fatKgPerWeek + comp.leanKgPerWeek) : 0;
+  const leanShare = comp && lost > 0.05 && comp.leanKgPerWeek < 0 ? Math.round((100 * -comp.leanKgPerWeek) / lost) : null;
   return (
     <Card className="flex flex-col">
       <div className="px-4 pt-4 pb-4 flex-1 flex flex-col gap-3">
@@ -227,6 +232,18 @@ export function WeightGoal({ days, targets, today }: { days: DailyRecord[]; targ
           </div>
         ) : (
           <p className="text-caption text-zinc-500">{t('today.weight.noTarget')}</p>
+        )}
+        {comp && (
+          <div>
+            <Row dense label={t('today.weight.fat')}>{t('today.weight.perWeek', { kg: fmtNum(comp.fatKgPerWeek, 2) })}</Row>
+            <Row dense label={t('today.weight.lean')}>{t('today.weight.perWeek', { kg: fmtNum(comp.leanKgPerWeek, 2) })}</Row>
+            <p className="text-note text-zinc-500 mt-1 leading-relaxed">
+              {t('today.weight.composition', {
+                weeks: formatInteger(Math.round(comp.spanDays / 7)),
+                share: leanShare === null ? 'none' : formatInteger(leanShare),
+              })}
+            </p>
+          </div>
         )}
         {pace && (
           <p className="text-caption text-zinc-400 leading-relaxed">
@@ -336,3 +353,123 @@ export function TrainingDoseCard({ dose, hasSessions }: { dose: Dose; hasSession
     </Card>
   );
 }
+
+/**
+ * This morning's check-in: five questions, 1 to 5, before the watch's numbers. Asked until it's
+ * answered, then a summary against the person's usual with a way to change it.
+ */
+export function CheckinCard({ checkins, today, save }: { checkins: Checkin[]; today: CivilDate; save: (c: Checkin) => Promise<void> }) {
+  const done = checkins.find((c) => c.date === today) ?? null;
+  const [editing, setEditing] = React.useState(false);
+  const [draft, setDraft] = React.useState<Partial<Record<CheckinItem, number>>>({});
+  const [saving, setSaving] = React.useState(false);
+  const verdict = judgeCheckin(checkins, today);
+  const complete = CHECKIN_ITEMS.every((k) => draft[k]);
+
+  const start = () => {
+    setDraft(done ? { ...done } : {});
+    setEditing(true);
+  };
+  const submit = async () => {
+    if (!complete) return;
+    setSaving(true);
+    try {
+      await save({ date: today, ...(draft as Record<CheckinItem, number>) });
+      setEditing(false);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (done && !editing && verdict) {
+    return (
+      <Card>
+        <div className="px-4 py-3 flex flex-wrap items-center gap-x-4 gap-y-1">
+          <span className="card-title-glance text-zinc-500">{t('today.checkin.title')}</span>
+          <span className="text-detail text-zinc-200 tabular-nums">
+            {t('today.checkin.total', { total: verdict.total, usual: verdict.usual === null ? 'none' : fmtNum(verdict.usual, 0) })}
+          </span>
+          {verdict.low.length > 0 && (
+            <span className="text-caption text-amber-400">
+              {t('today.checkin.low', { items: formatList(verdict.low.map((k) => t(CHECKIN_NAME[k]).toLocaleLowerCase())) })}
+            </span>
+          )}
+          <button type="button" onClick={start} className="ml-auto text-caption text-zinc-400 hover:text-zinc-200 underline underline-offset-2">
+            {t('today.checkin.change')}
+          </button>
+        </div>
+      </Card>
+    );
+  }
+
+  if (!editing && !done) {
+    return (
+      <Card>
+        <div className="px-4 py-3 flex flex-wrap items-center gap-x-4 gap-y-2">
+          <div className="min-w-0">
+            <p className="card-title-glance text-zinc-500">{t('today.checkin.title')}</p>
+            <p className="text-caption text-zinc-400 mt-0.5">{t('today.checkin.prompt')}</p>
+          </div>
+          <button type="button" onClick={start} className="ml-auto rounded-lg bg-zinc-100 text-zinc-900 px-3 py-1.5 text-caption font-medium">
+            {t('today.checkin.start')}
+          </button>
+        </div>
+      </Card>
+    );
+  }
+
+  return (
+    <Card>
+      <div className="px-4 pt-4 pb-4">
+        <p className="card-title-glance text-zinc-500">{t('today.checkin.title')}</p>
+        <p className="text-caption text-zinc-400 mt-0.5">{t('today.checkin.scale')}</p>
+        <div className="mt-3 space-y-2.5">
+          {CHECKIN_ITEMS.map((k) => (
+            <div key={k} className="flex flex-wrap items-center justify-between gap-2">
+              <span className="text-caption text-zinc-300">{t(CHECKIN_NAME[k])}</span>
+              <div className="flex gap-1.5" role="radiogroup" aria-label={t(CHECKIN_NAME[k])}>
+                {[1, 2, 3, 4, 5].map((v) => (
+                  <button
+                    key={v}
+                    type="button"
+                    role="radio"
+                    aria-checked={draft[k] === v}
+                    title={t('today.checkin.anchor', { item: k, value: v })}
+                    onClick={() => setDraft((d) => ({ ...d, [k]: v }))}
+                    className={`w-9 h-9 rounded-lg text-caption tabular-nums border ${
+                      draft[k] === v ? 'bg-zinc-100 text-zinc-900 border-zinc-100' : 'border-zinc-700 text-zinc-300 hover:border-zinc-500'
+                    }`}
+                  >
+                    {v}
+                  </button>
+                ))}
+              </div>
+              {draft[k] !== undefined && <p className="w-full text-note text-zinc-500 -mt-1">{t('today.checkin.anchor', { item: k, value: draft[k]! })}</p>}
+            </div>
+          ))}
+        </div>
+        <div className="mt-4 flex items-center gap-3">
+          <button
+            type="button"
+            disabled={!complete || saving}
+            onClick={submit}
+            className="rounded-lg bg-zinc-100 text-zinc-900 px-3 py-1.5 text-caption font-medium disabled:opacity-40"
+          >
+            {t('today.checkin.save')}
+          </button>
+          <button type="button" onClick={() => setEditing(false)} className="text-caption text-zinc-400 hover:text-zinc-200">
+            {t('today.checkin.cancel')}
+          </button>
+        </div>
+      </div>
+    </Card>
+  );
+}
+
+export const CHECKIN_NAME = {
+  sleep: 'today.checkin.items.sleep',
+  fatigue: 'today.checkin.items.fatigue',
+  soreness: 'today.checkin.items.soreness',
+  stress: 'today.checkin.items.stress',
+  mood: 'today.checkin.items.mood',
+} as const satisfies Record<CheckinItem, MessageKey>;

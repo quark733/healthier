@@ -187,6 +187,20 @@ const MIGRATIONS: { id: number; name: string; sql: string }[] = [
       );
     `,
   },
+  {
+    id: 10,
+    name: 'morning check-ins',
+    sql: `
+      -- The morning check-in (Checkin in src/pipeline/checkin.ts): five answers, 1 to 5, a day.
+      CREATE TABLE user_checkins (
+        user_id    uuid NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+        date       date NOT NULL,
+        value      jsonb NOT NULL,
+        updated_at timestamptz NOT NULL DEFAULT now(),
+        PRIMARY KEY (user_id, date)
+      );
+    `,
+  },
 ];
 
 export function createDb(connectionString: string): Db {

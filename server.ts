@@ -10,6 +10,7 @@ import { apiRoutes } from './server/api';
 import { startScheduler } from './server/sync';
 import { strengthApiRoutes } from './server/strength-api';
 import { targetsApiRoutes } from './server/targets-api';
+import { checkinApiRoutes } from './server/checkin-api';
 import { startStrengthScheduler, strengthAuthRoutes } from './server/strengthlog';
 import type { Deps } from './server/http';
 
@@ -44,6 +45,7 @@ async function startServer(config: Config) {
   app.use(strengthAuthRoutes(deps));
   app.use('/api', strengthApiRoutes(deps));
   app.use('/api', targetsApiRoutes(deps));
+  app.use('/api', checkinApiRoutes(deps));
   app.use('/api', apiRoutes(deps));
   // Unknown API paths are errors, not the SPA's index.html.
   app.use('/api', (req, res) => {

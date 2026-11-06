@@ -24,7 +24,9 @@ import { InsightsCarousel } from '../components/InsightsCarousel';
 import { Tile } from '../ui/Tile';
 import { useTargets } from '../hooks/useTargets';
 import { useStrength } from '../hooks/useStrength';
-import { FoodToday, TrainingDoseCard, WeightGoal } from './WellbeingCards';
+import { CheckinCard, FoodToday, TrainingDoseCard, WeightGoal } from './WellbeingCards';
+import { useCheckins } from '../hooks/useCheckins';
+import { judgeCheckin } from '../pipeline/checkin';
 import { trainingDose } from '../pipeline/trainingDose';
 
 /** Breathing's colour on the Vitals page. */
@@ -47,6 +49,7 @@ export function TodayView({
   clock?: { now: Date; timeZone: string };
 }) {
   const goals = useGoals();
+  const checkins = useCheckins();
   const { targets } = useTargets();
   const strength = useStrength(demo);
   const { insight: cycle, judged } = useCycle();
@@ -98,6 +101,9 @@ export function TodayView({
 
   return (
     <div className="space-y-3">
+      {/* First thing in the morning: how the night felt, before the watch's verdict. */}
+      <CheckinCard checkins={checkins.checkins} today={today} save={checkins.save} />
+
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 items-start">
         {/* Phones get the compact battery and four tiles; wider screens the full card and its column. */}
         <BodyBatteryCompact {...battery} className="md:hidden" />
@@ -304,7 +310,7 @@ export function TodayView({
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3 items-stretch">
         <FoodToday day={last} targets={targets} today={today} />
         <TrainingDoseCard
-          dose={trainingDose({ days, sessions: strength.data?.sessions ?? [], today, readiness: s.readiness, sleepNeedSet: goals.sleepNeed })}
+          dose={trainingDose({ days, sessions: strength.data?.sessions ?? [], today, readiness: s.readiness, sleepNeedSet: goals.sleepNeed, checkin: judgeCheckin(checkins.checkins, today) })}
           hasSessions={(strength.data?.sessions ?? []).length > 0}
         />
         <WeightGoal days={days} targets={targets} today={today} />

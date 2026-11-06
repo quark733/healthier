@@ -3,6 +3,7 @@ import { series, sleepDebt, sleepNeedFor, weightTrend, type Readiness } from './
 import { LANDMARKS, MUSCLES, musclesOf, setsPerMuscle, type Muscle } from './muscles';
 import { bestOf, recentLoad, type StrengthSession } from './strength';
 import type { DailyRecord } from '../types/health';
+import type { CheckinVerdict } from './checkin';
 
 /**
  * Today's training dose for someone lifting to keep muscle and strength: how close to failure to
@@ -24,7 +25,8 @@ import type { DailyRecord } from '../types/health';
  *   - The body battery drained (< 30) with enough data behind it. HRV and resting heart rate as a
  *     guide for strength training is promising but not settled (narrative review, J Funct Morphol
  *     Kinesiol 2024), so this is one step, never more.
- *   - The person's own ratings in StrengthLog low at the last session within 3 days. Self-reported
+ *   - This morning's check-in low (pipeline/checkin.ts), or without one, the person's own ratings in
+ *     StrengthLog low at the last session within 3 days; one step for the two together. Self-reported
  *     wellbeing tracks training load better than most objective markers (Saw et al. 2016, BJSM:
  *     56 studies).
  *   - This week's sets ≥ 30% over the usual week. A rule of thumb for when fatigue shows, not a
@@ -44,7 +46,7 @@ import type { DailyRecord } from '../types/health';
  */
 
 export type DoseLevel = 'full' | 'reduced' | 'light' | 'rest';
-export type DoseReason = 'shortSleep' | 'battery' | 'ratedLow' | 'ramp' | 'illness';
+export type DoseReason = 'shortSleep' | 'battery' | 'checkinLow' | 'ratedLow' | 'ramp' | 'illness';
 export type DoseNote = 'deficit' | 'fastLoss' | 'sleepWhileDieting' | 'stall';
 
 export interface Dose {
@@ -89,9 +91,11 @@ export interface DoseInput {
   today: CivilDate;
   readiness: Readiness | null;
   sleepNeedSet?: number | null;
+  /** This morning's check-in, judged against the person's usual (pipeline/checkin.ts). */
+  checkin?: CheckinVerdict | null;
 }
 
-export function trainingDose({ days, sessions, today, readiness, sleepNeedSet }: DoseInput): Dose {
+export function trainingDose({ days, sessions, today, readiness, sleepNeedSet, checkin }: DoseInput): Dose {
   const reasons: DoseReason[] = [];
   const notes: DoseNote[] = [];
 
@@ -113,7 +117,9 @@ export function trainingDose({ days, sessions, today, readiness, sleepNeedSet }:
     .filter((s) => s.ratings && s.date >= addDays(today, -3) && s.date <= today)
     .sort((a, b) => (a.date < b.date ? 1 : -1))[0];
   const r = rated?.ratings;
-  if (r && ((r.sleep ?? 10) <= 3 || (r.stress ?? 10) <= 3 || (r.form ?? 10) <= 3)) reasons.push('ratedLow');
+  // This morning's check-in is the fresher of the two self-reports; together they count as one step.
+  if (checkin?.lower) reasons.push('checkinLow');
+  else if (!checkin && r && ((r.sleep ?? 10) <= 3 || (r.stress ?? 10) <= 3 || (r.form ?? 10) <= 3)) reasons.push('ratedLow');
 
   // This week against the usual.
   const load = recentLoad(sessions, today);

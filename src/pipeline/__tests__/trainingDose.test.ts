@@ -75,3 +75,21 @@ test('two main lifts well under their best suggest a lighter week', () => {
   assert.ok(stalling(s, TODAY));
   assert.ok(!stalling(s.slice(0, 3), TODAY));
 });
+
+test('a low morning check-in takes a step, and stands in for the StrengthLog ratings', async () => {
+  const { judgeCheckin, readCheckin } = await import('../checkin');
+  const usual = Array.from({ length: 10 }, (_, i) => ({ date: addDays(TODAY, -10 + i), sleep: 4, fatigue: 4, soreness: 4, stress: 4, mood: 4 }));
+  const low = [...usual, { date: TODAY, sleep: 2, fatigue: 2, soreness: 3, stress: 4, mood: 4 }];
+  const v = judgeCheckin(low, TODAY)!;
+  assert.equal(v.total, 15);
+  assert.equal(v.usual, 20);
+  assert.deepEqual(v.low, ['sleep', 'fatigue']);
+  assert.ok(v.lower);
+  const sessions = [session(addDays(TODAY, -1), 'Bänkpress', 100, 5, 3, { sleep: 2 })];
+  const d = trainingDose({ days: weekOfSleep(480), sessions, today: TODAY, readiness: null, checkin: v });
+  assert.deepEqual(d.reasons, ['checkinLow']);
+  const fine = judgeCheckin([...usual, { date: TODAY, sleep: 4, fatigue: 4, soreness: 3, stress: 4, mood: 4 }], TODAY)!;
+  assert.ok(!fine.lower);
+  assert.equal(readCheckin({ date: TODAY, sleep: 6, fatigue: 4, soreness: 3, stress: 4, mood: 4 }), null);
+  assert.equal(readCheckin({ date: 'x', sleep: 3, fatigue: 4, soreness: 3, stress: 4, mood: 4 }), null);
+});

@@ -130,6 +130,8 @@
     }
   },
   "ui": {
+    "hintMore": "About this card",
+    "hintLess": "Hide the explanation",
     "sheet": {
       "close": "Close"
     },
@@ -855,7 +857,7 @@
       "level": "{level, select, full {Train as planned} reduced {Train, a bit lighter} light {Light session} other {Rest today}}",
       "effort": "RPE {rpeLow}–{rpeHigh} · {rirLow}–{rirHigh} reps in reserve",
       "what": "{level, select, full {Work sets 1–3 reps short of failure: heavy compound lifts at 2–3, isolation work can go to 0–1. Growth rises the closer sets end to failure, strength doesn't need it, and going all the way adds recovery time.} reduced {Keep your loads, cut about a third of the sets and stop a rep further from failure. That keeps the stimulus that holds muscle while asking less of a body that's short on recovery.} light {About half your usual sets, well short of failure. Enough to keep the habit and the muscle; a walk instead is fine too.} other {Signs that you may be coming down with something. Rest, or an easy walk, until breathing rate and temperature are back to your normal.}}",
-      "reason": "{reason, select, shortSleep {Last night: {sleep} asleep. Short sleep lowers strength and, more so, the reps you can do, and the later in the day the bigger the drop.} battery {Body battery {battery}: HRV, resting pulse and sleep together say recovery is low. It counts as one step only, since HRV is a weaker guide for lifting than for cardio.} ratedLow {Your own ratings at the last session (sleep, stress or form at 3/10 or lower). How you feel tracks training load better than most measurements do.} ramp {This week's sets are {percent}% over your usual week. That's when fatigue tends to show (a rule of thumb, not a research limit).} other {Breathing rate or skin temperature is up against your normal.}}",
+      "reason": "{reason, select, shortSleep {Last night: {sleep} asleep. Short sleep lowers strength and, more so, the reps you can do, and the later in the day the bigger the drop.} battery {Body battery {battery}: HRV, resting pulse and sleep together say recovery is low. It counts as one step only, since HRV is a weaker guide for lifting than for cardio.} checkinLow {This morning's check-in is low, or well under your usual. How you feel tracks training load better than most measurements do.} ratedLow {Your own ratings at the last session (sleep, stress or form at 3/10 or lower). How you feel tracks training load better than most measurements do.} ramp {This week's sets are {percent}% over your usual week. That's when fatigue tends to show (a rule of thumb, not a research limit).} other {Breathing rate or skin temperature is up against your normal.}}",
       "trainedToday": "You've trained today. This is for your next session.",
       "ready": "Ready",
       "recovering": "Trained today or yesterday",
@@ -864,7 +866,26 @@
       "note": "{note, select, deficit {Your weight trend points to a deficit of about {kcal} kcal a day. At 500 or more, muscle gains stall but strength can still rise: keep the loads heavy and the volume moderate, the aim is to keep what you have.} fastLoss {You're losing {pct}% of bodyweight a week, faster than the 0.5–1% advised to keep muscle.} sleepWhileDieting {Your nights average {sleep} this week. In a diet study, 5.5 h a night instead of 8.5 h halved the fat lost and raised the muscle lost by 60%: sleep is part of keeping muscle.} other {Several of your main lifts are more than 5% under their best of the last 6 weeks. A lighter week (about half the sets, same loads) usually brings them back; a full week off costs a little strength.}}",
       "footer": "Rules from the research, not a prescription. How the warm-up sets feel on the day beats any number here.",
       "sources": "Sources",
-      "sourceList": "Proximity to failure: Robinson et al. 2024 (Sports Med, 55 studies); Refalo et al. 2023 (Sports Med); recovery after sets to failure: Morán-Navarro et al. 2017 (Eur J Appl Physiol). Sleep loss and performance: Craven et al. 2022 (Sports Med, 77 studies); and muscle protein synthesis: Lamon et al. 2021 (Physiol Rep). Sleep while dieting: Nedeltcheva et al. 2010 (Ann Intern Med). Self-reported wellbeing: Saw et al. 2016 (Br J Sports Med, 56 studies). Energy deficit and lean mass: Murphy & Koehler 2022 (Scand J Med Sci Sports). Rate of loss: Helms et al. 2014 (J Int Soc Sports Nutr). Deloads: Bell et al. 2023 (Sports Med Open); Coleman et al. 2024 (PeerJ). Weekly volume: Pelland et al. 2024; Renaissance Periodization landmarks."
+      "sourceList": "Proximity to failure: Robinson et al. 2024 (Sports Med, 55 studies); Refalo et al. 2023 (Sports Med); recovery after sets to failure: Morán-Navarro et al. 2017 (Eur J Appl Physiol). Sleep loss and performance: Craven et al. 2022 (Sports Med, 77 studies); and muscle protein synthesis: Lamon et al. 2021 (Physiol Rep). Sleep while dieting: Nedeltcheva et al. 2010 (Ann Intern Med). Self-reported wellbeing: Saw et al. 2016 (Br J Sports Med, 56 studies); the check-in questions: McLean et al. 2010 (Int J Sports Physiol Perform). Energy deficit and lean mass: Murphy & Koehler 2022 (Scand J Med Sci Sports). Rate of loss: Helms et al. 2014 (J Int Soc Sports Nutr). Deloads: Bell et al. 2023 (Sports Med Open); Coleman et al. 2024 (PeerJ). Weekly volume: Pelland et al. 2024; Renaissance Periodization landmarks."
+    },
+    "checkin": {
+      "title": "Morning check-in",
+      "prompt": "How did you sleep, and how does your body feel? Five taps, before the watch's numbers.",
+      "start": "Check in",
+      "scale": "1 is worst, 5 is best. Answer for right now.",
+      "items": {
+        "sleep": "Sleep quality",
+        "fatigue": "Energy",
+        "soreness": "Muscle soreness",
+        "stress": "Stress",
+        "mood": "Mood"
+      },
+      "anchor": "{item, select, sleep {{value, select, 1 {Hardly slept} 2 {Restless} 3 {Okay} 4 {Good} other {Very restful}}} fatigue {{value, select, 1 {Exhausted} 2 {More tired than normal} 3 {Normal} 4 {Fresh} other {Very fresh}}} soreness {{value, select, 1 {Very sore} 2 {Sore, it's in the way} 3 {Some soreness} 4 {Barely} other {None}}} stress {{value, select, 1 {Very stressed} 2 {Stressed} 3 {Normal} 4 {Relaxed} other {Very relaxed}}} other {{value, select, 1 {Very low} 2 {Low} 3 {Normal} 4 {Good} other {Very good}}}}",
+      "save": "Save",
+      "cancel": "Cancel",
+      "change": "Change",
+      "total": "{total}/25{usual, select, none {} other {, usually {usual}}}",
+      "low": "Low: {items}"
     },
     "weight": {
       "title": "Weight goal",
@@ -875,6 +896,10 @@
       "pace": "{kg} kg/week ({pct}%)",
       "trend": "Your pace, 5 weeks",
       "trendNone": "Not enough weigh-ins yet",
+      "fat": "Fat, 8 weeks",
+      "lean": "Lean mass, 8 weeks",
+      "perWeek": "{kg} kg/week",
+      "composition": "From the scale's body fat over {weeks} weeks{share, select, none {.} other {: about {share}% of what you've lost is lean mass (muscle, water, glycogen).}} Body fat from a scale shifts with how much water you hold, so read the trend over weeks, not single days.",
       "noTarget": "Add a target weight and date on the Nutrition page.",
       "verdict": "{band, select, fast {That's faster than the {min}–{max}% of bodyweight a week usually advised to keep muscle (Helms et al. 2014). A later date or a less ambitious target would protect more muscle and strength.} gentle {That's slower than {min}% a week: easy to keep muscle at, and you could go a little faster if you want to.} other {That's within the {min}–{max}% of bodyweight a week usually advised to keep muscle while losing fat (Helms et al. 2014); athletes losing 0.7% a week kept more muscle than at 1.4% (Garthe et al. 2011).}}"
     },

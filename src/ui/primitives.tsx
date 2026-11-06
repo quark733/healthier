@@ -1,5 +1,5 @@
 import React, { useId, useState } from 'react';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, Info } from 'lucide-react';
 import { BASELINE_DAYS, BASELINE_MIN_READINGS, OFF_Z, type Band, type Comparison, stats, type Point } from '../pipeline/derive';
 import { t, type MessageKey, type Values } from '../i18n';
 import { rich } from '../i18n/react';
@@ -76,14 +76,31 @@ export function CardHead({
   hint?: React.ReactNode;
   right?: React.ReactNode;
 }) {
+  // A long explanation folds behind an (i) on a phone, where it would push the card's content off
+  // the screen; from md up there's room and it always shows.
+  const long = typeof hint === 'string' && hint.length > 140;
+  const [open, setOpen] = useState(false);
   return (
     <div className="px-5 pt-4 pb-3">
       {/* A summary that doesn't fit beside the title moves under it, rather than cutting the title short. */}
       <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-1">
-        <h3 className="card-title-detail text-zinc-50 min-w-0 truncate">{title}</h3>
+        <h3 className="card-title-detail text-zinc-50 min-w-0 truncate">
+          {title}
+          {long && (
+            <button
+              type="button"
+              onClick={() => setOpen((o) => !o)}
+              aria-expanded={open}
+              aria-label={t(open ? 'ui.hintLess' : 'ui.hintMore')}
+              className="md:hidden ml-2 align-middle text-zinc-500 hover:text-zinc-300"
+            >
+              <Info size={14} />
+            </button>
+          )}
+        </h3>
         {right && <div className="shrink-0 text-caption text-zinc-500">{right}</div>}
       </div>
-      {hint && <div className="text-caption text-zinc-500 mt-1.5 leading-relaxed">{hint}</div>}
+      {hint && <div className={`text-caption text-zinc-500 mt-1.5 leading-relaxed ${long && !open ? 'hidden md:block' : ''}`}>{hint}</div>}
     </div>
   );
 }
