@@ -159,6 +159,7 @@
     "groupCount": "{count, plural, one {# marker} other {# markers}}{flagged, plural, =0 {} other {, # to look at}}",
     "sources": "Sources",
     "supplements": {
+      "anticoagulant": "On a blood thinner: fish oil, ibuprofen, naproxen, aspirin, St John's wort, glucosamine, turmeric and ginkgo can change its effect or raise the risk of bleeding. Ask your doctor or pharmacist first.",
       "title": "Supplements, from your results",
       "hint": "Only supplements with real evidence behind them, each judged from your own results and your goal of keeping muscle while losing fat. General amounts from the sources, not a prescription.",
       "verdict": "{verdict, select, take {Worth taking} consider {Consider} timing {Mind the timing} skip {Not needed} avoid {Avoid} other {Test first}}",
@@ -186,8 +187,7 @@
         "omega3": {
           "name": "Omega-3 (fish oil)",
           "consider": "Your triglycerides ({value}) are above the goal, and omega-3 lowers them; fatty fish twice a week does the same.",
-          "skip": "It lowers triglycerides, and yours are fine, so there's little reason to take it for that. Fatty fish twice a week is still a good habit.",
-          "avoid": "Fish oil can add to the effect of an anticoagulant and raise the risk of bleeding (patient leaflet). Don't take it without asking your doctor; fatty fish as food is fine."
+          "skip": "It lowers triglycerides, and yours are fine, so there's little reason to take it for that. Fatty fish twice a week is still a good habit."
         },
         "iron": {
           "name": "Iron",
@@ -199,20 +199,12 @@
           "name": "Vitamin B12",
           "skip": "Yours was {value}, above the range: food, energy drinks or a supplement already cover it. If you take B12, there's no need to."
         },
-        "painkillers": {
-          "name": "Painkillers",
-          "avoid": "On an anticoagulant, ibuprofen (Ipren, Brufen), naproxen and aspirin raise the risk of bleeding. Ask your doctor or pharmacist which painkiller to use; paracetamol is the one usually suggested."
-        },
-        "herbal": {
-          "name": "Herbal remedies",
-          "avoid": "St John's wort can weaken an anticoagulant; glucosamine, turmeric, ginkgo and high-dose vitamin E can add to it. Ask the pharmacist before any supplement or herbal remedy."
-        },
         "magnesium": {
           "name": "Magnesium",
           "skip": "Yours was {value}, in range. No benefit has been shown from extra magnesium when the level is normal."
         }
       },
-      "sources": "Creatine: Kreider et al. 2017, ISSN position stand (J Int Soc Sports Nutr). Caffeine: Guest et al. 2021, ISSN position stand; Drake et al. 2013 (J Clin Sleep Med). Vitamin D: the lab's own assessment; EFSA upper limit 100 µg a day. Oat beta-glucan: EFSA 2010 claim (3 g a day). Plant sterols: Regulation (EU) 686/2014 (1.5–3 g a day, LDL −7 to −12%). Anticoagulant interactions: the apixaban patient leaflet (NHS West Suffolk)."
+      "sources": "Creatine: Kreider et al. 2017, ISSN position stand (J Int Soc Sports Nutr). Caffeine: Guest et al. 2021, ISSN position stand; Drake et al. 2013 (J Clin Sleep Med). Vitamin D: the lab's own assessment; EFSA upper limit 100 µg a day. Oat beta-glucan: EFSA 2010 claim (3 g a day). Plant sterols: Regulation (EU) 686/2014 (1.5–3 g a day, LDL −7 to −12%)."
     },
     "next": {
       "title": "Next test",
@@ -248,7 +240,6 @@
       "clear": "Delete all blood tests",
       "demo": "Demo mode: made-up results, not a real person's. Sign in to import your own."
     },
-    "clotNote": "With your history of clots, take this to your doctor soon rather than at the next routine visit: a high haematocrit makes the blood thicker.",
     "disclaimer": "General information, not medical advice. Reference ranges come from your lab; goals from the named guidelines. Talk to your doctor about results outside the range, and before starting anything new if you take medicines.",
     "markers": {
       "apob": {
@@ -331,7 +322,7 @@
       "hb": {
         "name": "Haemoglobin",
         "about": "The oxygen-carrying protein in red blood cells.",
-        "high": "Above the lab's range. Common reasons are being short of fluid when the sample was taken, smoking or nicotine, testosterone use, and in some people breathing pauses during sleep. Retest after drinking normally; if it's still high, a doctor should look at it.",
+        "high": "Above the lab's range. Common reasons are being short of fluid when the sample was taken, smoking or nicotine, testosterone use, and in some people breathing pauses during sleep. Retest after drinking normally; if it's still high, a doctor should look at it, sooner if you've had blood clots.",
         "low": "Below the lab's range, which can mean too little iron. Talk to your doctor if it's still outside the range at the next test."
       },
       "hct": {
@@ -563,62 +554,16 @@
       "ratioValue": "{ratio}{band, select, healthy {, healthy (under 0.5)} increased {, increased risk (0.5–0.59)} high {, high risk (0.6 or more)} other {}}"
     }
   },
-  "care": {
-    "clot": {
-      "title": "Clot care"
-    },
-    "calf": {
-      "title": "You marked a calf that hurts on one side this morning",
-      "what": "With your history, get it checked today: call 1177 or your clinic, and say you've had clots before. Skip hard training until it's been looked at. Call 112 at once if you get short of breath, chest pain, a racing pulse or cough up blood."
-    },
-    "dose": {
-      "slot": "{slot, select, morning {Morning dose} other {Evening dose}}",
-      "missed": "{missed, plural, =0 {No doses missed} one {# dose not marked} other {# doses not marked}} in the last {days, plural, one {day} other {# days}}.",
-      "start": "Tap a dose when you take it; the count of missed doses starts from the first one you mark.",
-      "forgot": "Forgot a dose: take it as soon as you remember, unless it's nearly time for the next one. Never take two at once to make up (patient leaflet). Follow your own doctor's instructions if they differ."
-    },
-    "sitting": "Yesterday: {steps} steps. Long sitting is a known trigger for clots: get up and walk a few minutes every hour, and do calf raises at the desk.",
-    "travel": {
-      "toggle": "{on, select, yes {Travelling today} other {Travelling?}}",
-      "title": "Travel checklist",
-      "items": "{item, select, move {On trips over 4 hours: get up and walk at least every hour.} calf {Seated: calf raises and ankle circles every half hour.} water {Drink water through the trip.} dose {Take {medicine} at your usual times; set an alarm across time zones.} other {Compression stockings, if your doctor has advised them.}}"
-    },
-    "signs": {
-      "title": "Warning signs",
-      "clotTitle": "A clot",
-      "clot": "Pain, swelling, warmth or redness in one leg: call 1177 or your clinic the same day. Sudden shortness of breath, chest pain that worsens when breathing in, a racing pulse or coughing up blood: call 112.",
-      "bleedTitle": "Bleeding, on an anticoagulant",
-      "bleed": "Red urine, black stools or bruises that appear for no reason: contact your clinic. A nosebleed over 10 minutes, blood in vomit, a severe headache, changed vision, numbness, or any hard knock to the head: emergency care, call 112."
-    },
-    "plan": {
-      "title": "My care plan",
-      "hint": "Kept on your server and only used here: it decides what the dashboard asks and warns about. A history of clots adds the calf question to the morning check-in and the clot care card to Today; an anticoagulant changes the supplement advice and adds the bleeding signs, and dose buttons if you want them.",
-      "clotHistory": "I've had blood clots, or have a clotting tendency",
-      "anticoagulant": "Anticoagulant",
-      "anticoagulantPlaceholder": "Name, or leave empty",
-      "dosesPerDay": "Doses a day",
-      "perDay": "{n, plural, one {Once a day} other {Twice a day}}",
-      "trackDoses": "Mark each dose on Today (leave off if a pill organiser does the job)",
-      "contact": "Care contact",
-      "contactPlaceholder": "Clinic, phone",
-      "notes": "Notes",
-      "notesPlaceholder": "Diagnosis, what your doctor has said, what to do",
-      "save": "Save care plan",
-      "saved": "Saved",
-      "failed": "Couldn't save. Try again.",
-      "contactLine": "Your care contact: {contact}"
-    },
-    "log": {
-      "title": "Health log",
-      "hint": "Tag a day with what happened. It takes seconds, and it's what makes patterns findable later: illness and stress show in your pulse and HRV, injuries in your training, and nothing can learn to warn about something that was never marked.",
-      "date": "Day",
-      "what": "What",
-      "note": "Note (optional)",
-      "add": "Add",
-      "delete": "Delete",
-      "none": "Nothing logged yet.",
-      "tag": "{tag, select, sick {Ill} injury {Injury} calf {Calf pain} travel {Travel} medicine {Medicine change} stress {Hard week} symptom {Symptom} other {Other}}"
-    }
+  "healthLog": {
+    "title": "Health log",
+    "hint": "Tag a day with what happened. It takes seconds, and it's what makes patterns findable later: illness and stress show in your pulse and HRV, injuries in your training, and nothing can learn to warn about something that was never marked.",
+    "date": "Day",
+    "what": "What",
+    "note": "Note (optional)",
+    "add": "Add",
+    "delete": "Delete",
+    "none": "Nothing logged yet.",
+    "tag": "{tag, select, sick {Ill} injury {Injury} travel {Travel} medicine {Medicine change} stress {Hard week} symptom {Symptom} other {Other}}"
   },
   "ui": {
     "hintMore": "About this card",
@@ -1348,7 +1293,7 @@
       "level": "{level, select, full {Train as planned} reduced {Train, a bit lighter} light {Light session} other {Rest today}}",
       "effort": "RPE {rpeLow}–{rpeHigh} · {rirLow}–{rirHigh} reps in reserve",
       "what": "{level, select, full {Work sets 1–3 reps short of failure: heavy compound lifts at 2–3, isolation work can go to 0–1. Growth rises the closer sets end to failure, strength doesn't need it, and going all the way adds recovery time.} reduced {Keep your loads, cut about a third of the sets and stop a rep further from failure. That keeps the stimulus that holds muscle while asking less of a body that's short on recovery.} light {About half your usual sets, well short of failure. Enough to keep the habit and the muscle; a walk instead is fine too.} other {Signs that you may be coming down with something. Rest, or an easy walk, until breathing rate and temperature are back to your normal.}}",
-      "reason": "{reason, select, shortSleep {Last night: {sleep} asleep. Short sleep lowers strength and, more so, the reps you can do, and the later in the day the bigger the drop.} battery {Body battery {battery}: HRV, resting pulse and sleep together say recovery is low. It counts as one step only, since HRV is a weaker guide for lifting than for cardio.} calf {You marked a calf that hurts on one side: no hard training until it's been checked.} checkinLow {This morning's check-in is low, or well under your usual. How you feel tracks training load better than most measurements do.} ratedLow {Your own ratings at the last session (sleep, stress or form at 3/10 or lower). How you feel tracks training load better than most measurements do.} ramp {This week's sets are {percent}% over your usual week. That's when fatigue tends to show (a rule of thumb, not a research limit).} other {Breathing rate or skin temperature is up against your normal.}}",
+      "reason": "{reason, select, shortSleep {Last night: {sleep} asleep. Short sleep lowers strength and, more so, the reps you can do, and the later in the day the bigger the drop.} battery {Body battery {battery}: HRV, resting pulse and sleep together say recovery is low. It counts as one step only, since HRV is a weaker guide for lifting than for cardio.} checkinLow {This morning's check-in is low, or well under your usual. How you feel tracks training load better than most measurements do.} ratedLow {Your own ratings at the last session (sleep, stress or form at 3/10 or lower). How you feel tracks training load better than most measurements do.} ramp {This week's sets are {percent}% over your usual week. That's when fatigue tends to show (a rule of thumb, not a research limit).} other {Breathing rate or skin temperature is up against your normal.}}",
       "trainedToday": "You've trained today. This is for your next session.",
       "ready": "Ready",
       "recovering": "Trained today or yesterday",
@@ -1373,7 +1318,6 @@
       },
       "anchor": "{item, select, sleep {{value, select, 1 {Hardly slept} 2 {Restless} 3 {Okay} 4 {Good} other {Very restful}}} fatigue {{value, select, 1 {Exhausted} 2 {More tired than normal} 3 {Normal} 4 {Fresh} other {Very fresh}}} soreness {{value, select, 1 {Very sore} 2 {Sore, it's in the way} 3 {Some soreness} 4 {Barely} other {None}}} stress {{value, select, 1 {Very stressed} 2 {Stressed} 3 {Normal} 4 {Relaxed} other {Very relaxed}}} other {{value, select, 1 {Very low} 2 {Low} 3 {Normal} 4 {Good} other {Very good}}}}",
       "lateCaffeine": "Coffee, energy drink or pre-workout within 6 h of bed last night?",
-      "calf": "Pain, swelling or warmth in one calf that isn't training soreness?",
       "yesNo": "{value, select, yes {Yes} other {No}}",
       "caffeineEffect": "Your sleep after late caffeine: {with}/5, against {without}/5 without ({withN} and {withoutN} mornings){minutes, select, none {.} other {; the watch measured {minutes} min {direction, select, more {more} other {less}} sleep.}}",
       "save": "Save",

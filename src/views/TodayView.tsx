@@ -26,8 +26,6 @@ import { useTargets } from '../hooks/useTargets';
 import { useStrength } from '../hooks/useStrength';
 import { CheckinCard, FoodToday, TrainingDoseCard, WeightGoal } from './WellbeingCards';
 import { MeasurementsRow } from './MeasurementsCards';
-import { ClotCard } from './CareCards';
-import { useCare } from '../hooks/useCare';
 import { useCheckins } from '../hooks/useCheckins';
 import { judgeCheckin } from '../pipeline/checkin';
 import { trainingDose } from '../pipeline/trainingDose';
@@ -53,7 +51,6 @@ export function TodayView({
 }) {
   const goals = useGoals();
   const checkins = useCheckins();
-  const care = useCare();
   const { targets } = useTargets();
   const strength = useStrength(demo);
   const { insight: cycle, judged } = useCycle();
@@ -61,7 +58,6 @@ export function TodayView({
   const days = data.days;
   const last = days[days.length - 1];
   const today = last.date;
-  const calfToday = care.plan.clotHistory && checkins.checkins.some((c) => c.date === today && c.calf === true);
 
   const stepsSeries = series(days, (d) => d.steps);
   const sleepSeries = series(days, (d) => d.sleep?.minutesAsleep ?? null);
@@ -107,8 +103,7 @@ export function TodayView({
   return (
     <div className="space-y-3">
       {/* First thing in the morning: how the night felt, before the watch's verdict. */}
-      <CheckinCard checkins={checkins.checkins} today={today} save={checkins.save} days={days} askCalf={care.plan.clotHistory} />
-      <ClotCard today={today} days={days} calfToday={calfToday} />
+      <CheckinCard checkins={checkins.checkins} today={today} save={checkins.save} days={days} />
       <MeasurementsRow today={today} heightCm={data.profile.heightCm} />
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 items-start">
@@ -317,7 +312,7 @@ export function TodayView({
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3 items-stretch">
         <FoodToday day={last} targets={targets} today={today} />
         <TrainingDoseCard
-          dose={trainingDose({ days, sessions: strength.data?.sessions ?? [], today, readiness: s.readiness, sleepNeedSet: goals.sleepNeed, checkin: judgeCheckin(checkins.checkins, today), calfAlert: calfToday })}
+          dose={trainingDose({ days, sessions: strength.data?.sessions ?? [], today, readiness: s.readiness, sleepNeedSet: goals.sleepNeed, checkin: judgeCheckin(checkins.checkins, today) })}
           hasSessions={(strength.data?.sessions ?? []).length > 0}
         />
         <WeightGoal days={days} targets={targets} today={today} />

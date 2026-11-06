@@ -9,7 +9,6 @@ import { GoalsProvider } from './hooks/useGoals';
 import { TargetsProvider } from './hooks/useTargets';
 import { CheckinsProvider } from './hooks/useCheckins';
 import { MeasurementsProvider } from './hooks/useMeasurements';
-import { CareProvider } from './hooks/useCare';
 import { CycleProvider, useCycleTracking } from './hooks/useCycle';
 import { ThemeProvider } from './hooks/useTheme';
 import { CycleView } from './views/CycleView';
@@ -246,7 +245,6 @@ export default function App() {
           <TargetsProvider demo={demo}>
           <CheckinsProvider demo={demo} today={today}>
           <MeasurementsProvider demo={demo} today={today}>
-          <CareProvider demo={demo} today={today}>
           <HistoryProvider data={health.data} info={health.history} live={!demo} local={health.localHistory}>
           <main className="mt-3 md:mt-6 animate-in fade-in duration-500">
             {view === 'today' && <TodayView data={health.data} gender={gender} intraday={intradayDays} clock={demo ? DEMO_CLOCK : undefined} demo={demo} />}
@@ -278,7 +276,6 @@ export default function App() {
             )}
           </main>
           </HistoryProvider>
-          </CareProvider>
           </MeasurementsProvider>
           </CheckinsProvider>
           </TargetsProvider>

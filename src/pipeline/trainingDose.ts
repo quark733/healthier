@@ -46,7 +46,7 @@ import type { CheckinVerdict } from './checkin';
  */
 
 export type DoseLevel = 'full' | 'reduced' | 'light' | 'rest';
-export type DoseReason = 'shortSleep' | 'battery' | 'checkinLow' | 'ratedLow' | 'ramp' | 'illness' | 'calf';
+export type DoseReason = 'shortSleep' | 'battery' | 'checkinLow' | 'ratedLow' | 'ramp' | 'illness';
 export type DoseNote = 'deficit' | 'fastLoss' | 'sleepWhileDieting' | 'stall';
 
 export interface Dose {
@@ -93,11 +93,9 @@ export interface DoseInput {
   sleepNeedSet?: number | null;
   /** This morning's check-in, judged against the person's usual (pipeline/checkin.ts). */
   checkin?: CheckinVerdict | null;
-  /** A calf that hurts on one side, for someone with a clot history: no hard training until it's checked. */
-  calfAlert?: boolean;
 }
 
-export function trainingDose({ days, sessions, today, readiness, sleepNeedSet, checkin, calfAlert }: DoseInput): Dose {
+export function trainingDose({ days, sessions, today, readiness, sleepNeedSet, checkin }: DoseInput): Dose {
   const reasons: DoseReason[] = [];
   const notes: DoseNote[] = [];
 
@@ -130,10 +128,6 @@ export function trainingDose({ days, sessions, today, readiness, sleepNeedSet, c
   let level: DoseLevel = LEVELS[Math.min(reasons.length, LEVELS.length - 1)];
   if (illness) {
     reasons.unshift('illness');
-    level = 'rest';
-  }
-  if (calfAlert) {
-    reasons.unshift('calf');
     level = 'rest';
   }
 

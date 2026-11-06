@@ -358,28 +358,26 @@ export function TrainingDoseCard({ dose, hasSessions }: { dose: Dose; hasSession
  * This morning's check-in: five questions, 1 to 5, before the watch's numbers. Asked until it's
  * answered, then a summary against the person's usual with a way to change it.
  */
-export function CheckinCard({ checkins, today, save, days = [], askCalf = false }: { checkins: Checkin[]; today: CivilDate; save: (c: Checkin) => Promise<void>; days?: DailyRecord[]; askCalf?: boolean }) {
+export function CheckinCard({ checkins, today, save, days = [] }: { checkins: Checkin[]; today: CivilDate; save: (c: Checkin) => Promise<void>; days?: DailyRecord[] }) {
   const done = checkins.find((c) => c.date === today) ?? null;
   const [editing, setEditing] = React.useState(false);
   const [draft, setDraft] = React.useState<Partial<Record<CheckinItem, number>>>({});
   const [late, setLate] = React.useState<boolean | null>(null);
-  const [calf, setCalf] = React.useState<boolean | null>(null);
   const [saving, setSaving] = React.useState(false);
   const verdict = judgeCheckin(checkins, today);
-  const complete = CHECKIN_ITEMS.every((k) => draft[k]) && late !== null && (!askCalf || calf !== null);
+  const complete = CHECKIN_ITEMS.every((k) => draft[k]) && late !== null;
   const caffeine = caffeineEffect(checkins, (date) => days.find((d) => d.date === date)?.sleep?.minutesAsleep ?? null, today);
 
   const start = () => {
     setDraft(done ? { ...done } : {});
     setLate(done?.lateCaffeine ?? null);
-    setCalf(done?.calf ?? null);
     setEditing(true);
   };
   const submit = async () => {
     if (!complete) return;
     setSaving(true);
     try {
-      await save({ date: today, ...(draft as Record<CheckinItem, number>), lateCaffeine: late ?? undefined, calf: askCalf ? calf ?? undefined : undefined });
+      await save({ date: today, ...(draft as Record<CheckinItem, number>), lateCaffeine: late ?? undefined });
       setEditing(false);
     } finally {
       setSaving(false);
@@ -484,27 +482,6 @@ export function CheckinCard({ checkins, today, save, days = [], askCalf = false 
               ))}
             </div>
           </div>
-          {askCalf && (
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <span className="text-caption text-zinc-300">{t('today.checkin.calf')}</span>
-              <div className="flex gap-1.5" role="radiogroup" aria-label={t('today.checkin.calf')}>
-                {[true, false].map((v) => (
-                  <button
-                    key={String(v)}
-                    type="button"
-                    role="radio"
-                    aria-checked={calf === v}
-                    onClick={() => setCalf(v)}
-                    className={`px-3 h-9 rounded-lg text-caption border ${
-                      calf === v ? 'bg-zinc-100 text-zinc-900 border-zinc-100' : 'border-zinc-700 text-zinc-300 hover:border-zinc-500'
-                    }`}
-                  >
-                    {t('today.checkin.yesNo', { value: v ? 'yes' : 'no' })}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
         <div className="mt-4 flex items-center gap-3">
           <button

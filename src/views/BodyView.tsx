@@ -16,7 +16,7 @@ import type { Gender } from '../pipeline/registry';
 import { bucketForSeries, groupSeries } from '../pipeline/aggregate';
 import { SpanSelector, spanSummaryTitle, useSpan } from '../ui/span';
 import { MeasurementsCard } from './MeasurementsCards';
-import { CarePlanCard, EventsCard } from './CareCards';
+import { HealthLogCard } from './HealthLogCard';
 import { useHistory } from '../hooks/useHistory';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 import { InsightsCarousel } from '../components/InsightsCarousel';
@@ -98,8 +98,7 @@ export function BodyView({ data, gender, onGender, clock, intraday }: {
           />
         </Card>
         {today && <MeasurementsCard today={today} heightCm={heightCm} />}
-        <CarePlanCard />
-        {today && <EventsCard today={today} />}
+        {today && <HealthLogCard demo={!!clock} today={today} />}
       </div>
     );
   }
@@ -247,8 +246,7 @@ export function BodyView({ data, gender, onGender, clock, intraday }: {
       )}
 
       {today && <MeasurementsCard today={today} heightCm={heightCm} />}
-      <CarePlanCard />
-      {today && <EventsCard today={today} />}
+      {today && <HealthLogCard demo={!!clock} today={today} />}
 
       <InsightsCarousel observations={insights} page="body" />
     </div>
