@@ -131,6 +131,8 @@ function Summaries({ today, heightCm, compact = false }: { today: CivilDate; hei
 /** Today: the two numbers in a row, and the form behind a button. */
 export function MeasurementsRow({ today, heightCm }: { today: CivilDate; heightCm: number | null }) {
   const [open, setOpen] = useState(false);
+  const { list } = useMeasurements();
+  const empty = list.length === 0;
   return (
     <Card>
       <div className="px-4 py-3">
@@ -143,9 +145,13 @@ export function MeasurementsRow({ today, heightCm }: { today: CivilDate; heightC
             {open ? t('measure.close') : t('measure.add')}
           </button>
         </div>
-        <div className="mt-1">
-          <Summaries today={today} heightCm={heightCm} compact={!open} />
-        </div>
+        {empty && !open ? (
+          <p className="text-caption text-zinc-500 mt-1">{t('measure.prompt')}</p>
+        ) : (
+          <div className="mt-1">
+            <Summaries today={today} heightCm={heightCm} compact={!open} />
+          </div>
+        )}
         {open && (
           <div className="mt-3 pt-3 border-t border-zinc-800">
             <AddForms today={today} onDone={() => setOpen(false)} />
@@ -159,7 +165,8 @@ export function MeasurementsRow({ today, heightCm }: { today: CivilDate; heightC
 /** Body page: the form, the summaries, how to measure, and the last readings. */
 export function MeasurementsCard({ today, heightCm }: { today: CivilDate; heightCm: number | null }) {
   const { list, remove } = useMeasurements();
-  const recent = [...list].reverse().slice(0, 14);
+  const [all, setAll] = useState(false);
+  const recent = [...list].reverse().slice(0, all ? 60 : 6);
   return (
     <Card>
       <CardHead title={t('measure.title')} hint={t('measure.hint')} />
@@ -191,6 +198,11 @@ export function MeasurementsCard({ today, heightCm }: { today: CivilDate; height
             ))
           ) : (
             <p className="text-caption text-zinc-500">{t('measure.none')}</p>
+          )}
+          {list.length > 6 && (
+            <button type="button" onClick={() => setAll((a) => !a)} className="mt-2 text-caption text-zinc-400 hover:text-zinc-200 underline underline-offset-2">
+              {t('measure.showAll', { all: all ? 'yes' : 'no', count: list.length })}
+            </button>
           )}
         </div>
       </div>

@@ -104,6 +104,17 @@ export function TodayView({
     <div className="space-y-3">
       {/* First thing in the morning: how the night felt, before the watch's verdict. */}
       <CheckinCard checkins={checkins.checkins} today={today} save={checkins.save} days={days} />
+
+      {/* Food, training and bodyweight first: what goes in, what's asked of the body, and where it's heading. */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 items-stretch">
+        <FoodToday day={last} targets={targets} today={today} />
+        <TrainingDoseCard
+          dose={trainingDose({ days, sessions: strength.data?.sessions ?? [], today, readiness: s.readiness, sleepNeedSet: goals.sleepNeed, checkin: judgeCheckin(checkins.checkins, today) })}
+          hasSessions={(strength.data?.sessions ?? []).length > 0}
+        />
+        <WeightGoal days={days} targets={targets} today={today} />
+      </div>
+
       <MeasurementsRow today={today} heightCm={data.profile.heightCm} />
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 items-start">
@@ -306,16 +317,6 @@ export function TodayView({
             </div>
           </Card>
         </div>
-      </div>
-
-      {/* Food, training and bodyweight: what goes in, what's asked of the body, and where it's heading. */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 items-stretch">
-        <FoodToday day={last} targets={targets} today={today} />
-        <TrainingDoseCard
-          dose={trainingDose({ days, sessions: strength.data?.sessions ?? [], today, readiness: s.readiness, sleepNeedSet: goals.sleepNeed, checkin: judgeCheckin(checkins.checkins, today) })}
-          hasSessions={(strength.data?.sessions ?? []).length > 0}
-        />
-        <WeightGoal days={days} targets={targets} today={today} />
       </div>
 
       {/* Stacked, the carousel comes last, as on every other page; side by side it leads the row. */}

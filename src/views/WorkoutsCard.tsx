@@ -7,22 +7,26 @@ import { workoutWeek, workoutsBetween } from '../pipeline/workouts';
 import { Card, CardHead, Row, fmtNum } from '../ui/primitives';
 
 /**
- * Every workout Google Health has from the last 14 days, newest first, and the last 7 days in
+ * Every workout Google Health has from the last 7 days, newest first, and the last 7 days in
  * three numbers. This is the whole training picture for anyone without StrengthLog, and for
  * someone with it, the runs, walks and rides the strength cards don't see.
  */
-export function WorkoutsCard({ days, today }: { days: DailyRecord[]; today: CivilDate }) {
-  const list = workoutsBetween(days, addDays(today, -13), today).reverse();
+export function WorkoutsCard({ days, today, strengthElsewhere = false }: { days: DailyRecord[]; today: CivilDate; strengthElsewhere?: boolean }) {
+  // With StrengthLog connected, its sessions are in the cards above: list the rest here.
+  const list = workoutsBetween(days, addDays(today, -6), today)
+    .filter((w) => !strengthElsewhere || w.kind !== 'strength')
+    .reverse();
   const week = workoutWeek(days, today);
   return (
     <Card>
       <CardHead title={t('training.workouts.title')} hint={t('training.workouts.hint')} />
       <div className="px-5 pb-5">
-        {list.length ? (
+        {week.sessions ? (
           <>
             <Row label={t('training.workouts.week')}>
               {t('training.workouts.weekValue', { sessions: week.sessions, strength: week.strength, cardio: formatInteger(week.cardioMinutes) })}
             </Row>
+            {!list.length && <p className="text-caption text-zinc-500 mt-2">{t('training.workouts.onlyStrength')}</p>}
             <div className="mt-2">
               {list.map((w) => (
                 <Row

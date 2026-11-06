@@ -138,6 +138,7 @@
     "results": "Markers",
     "outside": "Outside range",
     "watch": "Short of a goal",
+    "genderNote": "Some of your results (SHBG, LH, prolactin, testosterone/SHBG) have their range only for men or for women: set your gender under Body → Profile to judge them.",
     "stale": "Your latest test is {months} months old, from before most of what's on the other pages. A new one gives a baseline for this cut.",
     "empty": {
       "title": "No blood tests yet",
@@ -531,6 +532,8 @@
     "add": "Add",
     "close": "Close",
     "none": "No readings yet",
+    "prompt": "No readings yet. Tap Add after your morning measurement.",
+    "showAll": "{all, select, yes {Show fewer} other {Show all {count}}}",
     "recent": "Latest readings",
     "delete": "Delete reading",
     "failed": "Couldn't save. Check the numbers and try again.",
@@ -2129,9 +2132,10 @@
       "triceps": "Triceps"
     },
     "workouts": {
-      "title": "Workouts, last 14 days",
+      "title": "Workouts, last 7 days",
       "hint": "Every session a watch or an app sent to Google Health, directly or through Apple Health: what kind, how long, and energy, heart rate and distance when they were measured. A StrengthLog session shows here with its time and name when StrengthLog shares them; its sets, reps and weights only come through the StrengthLog connection.",
-      "none": "No workouts in the last 14 days. Workouts arrive when a watch records them, or when an app such as StrengthLog shares them with Apple Health.",
+      "onlyStrength": "Only strength sessions this week; they're in the cards above.",
+      "none": "No workouts in the last 7 days. Workouts arrive when a watch records them, or when an app such as StrengthLog shares them with Apple Health.",
       "week": "Last 7 days",
       "weekValue": "{sessions, plural, one {# workout} other {# workouts}} · {strength} strength · {cardio} min other",
       "when": "{name} · {date}, {time}",

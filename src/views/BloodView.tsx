@@ -152,6 +152,9 @@ export function BloodView({ demo, today, gender }: { demo: boolean; today: Civil
             labs.loaded && <EmptyState title={t('blood.empty.title')} detail={t('blood.empty.detail')} />
           )}
           {ageDays !== null && ageDays > 180 && <p className="text-caption text-amber-300/90 mt-3">{t('blood.stale', { months: Math.round(ageDays / 30.4) })}</p>}
+          {!gender && labs.results.some((r) => r.refLow === null && r.refHigh === null && MARKERS.find((m) => m.id === r.marker)?.maleRange) && (
+            <p className="text-caption text-zinc-400 mt-2">{t('blood.genderNote')}</p>
+          )}
         </div>
       </Card>
 

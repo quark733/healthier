@@ -14,7 +14,7 @@ import { ChartChips } from '../ui/ChartChips';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 import { useStrength } from '../hooks/useStrength';
 import { setsPerMuscle } from '../pipeline/muscles';
-import { MuscleWeekRows, TrainingRecovery } from './WellbeingCards';
+import { MuscleWeekRows } from './WellbeingCards';
 import { WorkoutsCard } from './WorkoutsCard';
 import type { DailyRecord } from '../types/health';
 
@@ -59,7 +59,7 @@ export function TrainingView({ demo, today, notice, days = [] }: { demo: boolean
   }
 
   const link = <ConnectionCard demo={demo} strength={strength} notice={notice} />;
-  const workouts = <WorkoutsCard days={days} today={today} />;
+  const workouts = <WorkoutsCard days={days} today={today} strengthElsewhere={sessions.length > 0} />;
   if (!sessions.length) {
     return (
       <div className="space-y-3">
@@ -136,10 +136,9 @@ export function TrainingView({ demo, today, notice, days = [] }: { demo: boolean
 
   return (
     <div className="space-y-3">
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
         <LatestSession session={latest} />
         <ThisWeek load={load} />
-        <TrainingRecovery sessions={sessions} today={today} days={days} />
       </div>
 
       <Card>
