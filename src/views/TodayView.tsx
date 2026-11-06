@@ -24,7 +24,8 @@ import { InsightsCarousel } from '../components/InsightsCarousel';
 import { Tile } from '../ui/Tile';
 import { useTargets } from '../hooks/useTargets';
 import { useStrength } from '../hooks/useStrength';
-import { FoodToday, TrainingRecovery, WeightGoal } from './WellbeingCards';
+import { FoodToday, TrainingDoseCard, WeightGoal } from './WellbeingCards';
+import { trainingDose } from '../pipeline/trainingDose';
 
 /** Breathing's colour on the Vitals page. */
 const BREATHING_HEX = 'var(--purple-500)';
@@ -302,11 +303,9 @@ export function TodayView({
       {/* Food, training and bodyweight: what goes in, what's asked of the body, and where it's heading. */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3 items-stretch">
         <FoodToday day={last} targets={targets} today={today} />
-        <TrainingRecovery
-          days={days}
-          sessions={strength.data?.sessions ?? []}
-          today={today}
-          sleepZ={slDay?.date && isRecent(slDay.date, today) ? sleepCmp.z : null}
+        <TrainingDoseCard
+          dose={trainingDose({ days, sessions: strength.data?.sessions ?? [], today, readiness: s.readiness, sleepNeedSet: goals.sleepNeed })}
+          hasSessions={(strength.data?.sessions ?? []).length > 0}
         />
         <WeightGoal days={days} targets={targets} today={today} />
       </div>

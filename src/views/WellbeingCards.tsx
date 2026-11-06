@@ -2,7 +2,8 @@ import { workoutWeek } from '../pipeline/workouts';
 import React from 'react';
 import { Dumbbell, Scale, Utensils } from 'lucide-react';
 import { t, type MessageKey } from '../i18n';
-import { formatCivilLong, formatInteger } from '../i18n/format';
+import { formatCivilLong, formatHours, formatInteger, formatList } from '../i18n/format';
+import type { Dose } from '../pipeline/trainingDose';
 import { addDays, daysBetween, type CivilDate } from '../lib/date';
 import { series, weightTrend } from '../pipeline/derive';
 import { suggest, type Food } from '../pipeline/foods';
@@ -261,5 +262,77 @@ export function MuscleWeekRows({ week }: { week: MuscleWeek[] }) {
         );
       })}
     </div>
+  );
+}
+
+const LEVEL_COLOUR = { full: 'text-emerald-400', reduced: 'text-amber-400', light: 'text-orange-400', rest: 'text-rose-400' } as const;
+
+/**
+ * Today's training dose: how hard, how much, and which muscles are ready, from last night's sleep,
+ * the battery, the person's own ratings, this week's load and their bodyweight trend
+ * (pipeline/trainingDose.ts, where each rule's source is named).
+ */
+export function TrainingDoseCard({ dose, hasSessions }: { dose: Dose; hasSessions: boolean }) {
+  const muscles = (list: Muscle[]) => formatList(list.map((m) => t(MUSCLE_NAME[m]).toLocaleLowerCase()));
+  const f = dose.facts;
+  return (
+    <Card className="flex flex-col">
+      <div className="px-4 pt-4 pb-4 flex-1 flex flex-col gap-3">
+        <Head title={t('today.dose.title')} icon={<Dumbbell size={14} className="text-orange-400" />} />
+        <div>
+          <p className={`text-section font-semibold ${LEVEL_COLOUR[dose.level]}`}>{t('today.dose.level', { level: dose.level })}</p>
+          {dose.rpe && dose.rir && (
+            <p className="text-detail text-zinc-200 tabular-nums mt-0.5">
+              {t('today.dose.effort', { rpeLow: dose.rpe[0], rpeHigh: dose.rpe[1], rirLow: dose.rir[0], rirHigh: dose.rir[1] })}
+            </p>
+          )}
+          <p className="text-caption text-zinc-400 mt-1 leading-relaxed">{t('today.dose.what', { level: dose.level })}</p>
+        </div>
+
+        {dose.reasons.length > 0 && (
+          <ul className="space-y-1 text-caption text-zinc-400 leading-relaxed">
+            {dose.reasons.map((r) => (
+              <li key={r}>
+                {t('today.dose.reason', {
+                  reason: r,
+                  sleep: f.sleepMin === null ? '' : formatHours(f.sleepMin),
+                  battery: f.battery === null ? '' : formatInteger(f.battery),
+                  percent: f.weekRatio === null ? '' : formatInteger(Math.round((f.weekRatio - 1) * 100)),
+                })}
+              </li>
+            ))}
+          </ul>
+        )}
+
+        {hasSessions && (
+          <div>
+            {dose.trainedToday && <p className="text-caption text-zinc-300 mb-1">{t('today.dose.trainedToday')}</p>}
+            {dose.ready.length > 0 && <Row dense label={t('today.dose.ready')}>{muscles(dose.ready)}</Row>}
+            {dose.recovering.length > 0 && <Row dense label={t('today.dose.recovering')}>{muscles(dose.recovering)}</Row>}
+            {dose.room.length > 0 && <Row dense label={t('today.dose.room')}>{muscles(dose.room)}</Row>}
+            {dose.full.length > 0 && <Row dense label={t('today.dose.full')}>{muscles(dose.full)}</Row>}
+          </div>
+        )}
+
+        {dose.notes.map((n) => (
+          <p key={n} className="text-caption text-zinc-400 leading-relaxed">
+            {t('today.dose.note', {
+              note: n,
+              kcal: f.deficitKcal === null ? '' : formatInteger(Math.round(f.deficitKcal / 50) * 50),
+              pct: f.lossPctPerWeek === null ? '' : fmtNum(f.lossPctPerWeek, 1),
+              sleep: f.sleepMean7Min === null ? '' : formatHours(f.sleepMean7Min),
+            })}
+          </p>
+        ))}
+
+        <div className="mt-auto">
+          <p className="text-note text-zinc-500">{t('today.dose.footer')}</p>
+          <details className="text-note text-zinc-500 mt-1">
+            <summary className="cursor-pointer">{t('today.dose.sources')}</summary>
+            <p className="mt-1 leading-relaxed">{t('today.dose.sourceList')}</p>
+          </details>
+        </div>
+      </div>
+    </Card>
   );
 }
