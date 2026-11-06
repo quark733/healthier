@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { IntradaySample } from './types/health';
-import { ChevronLeft, ChevronRight, CircleDotDashed, FlaskConical, Footprints, Heart, Moon, RefreshCw, Settings, User, ShieldAlert, PersonStanding, Utensils, Dumbbell } from 'lucide-react';
+import { ChevronLeft, ChevronRight, CircleDotDashed, FlaskConical, Footprints, Heart, Moon, RefreshCw, Settings, User, ShieldAlert, PersonStanding, Utensils, Dumbbell, Droplet } from 'lucide-react';
 import { useAuth } from './hooks/useAuth';
 import { useInstance } from './hooks/useInstance';
 import { useHealth } from './hooks/useHealth';
@@ -32,6 +32,7 @@ import { NutritionView } from './views/NutritionView';
 import { TrainingView } from './views/TrainingView';
 import { SettingsView, type SectionId } from './views/SettingsView';
 import { LabsView } from './views/LabsView';
+import { BloodView } from './views/BloodView';
 import { AboutYourData, GoogleG, SignInConsent, SignInNote } from './views/SignInParts';
 
 export default function App() {
@@ -251,6 +252,7 @@ export default function App() {
             {view === 'body' && <BodyView data={health.data} gender={gender} onGender={chooseGender} intraday={intradayDays} clock={demo ? DEMO_CLOCK : undefined} />}
             {view === 'nutrition' && <NutritionView data={health.data} />}
             {view === 'training' && today && <TrainingView demo={demo} today={today} notice={strengthNotice} days={health.data?.days} />}
+            {view === 'blood' && today && <BloodView demo={demo} today={today} gender={gender} />}
             {view === 'cycle' && <CycleView data={health.data} intraday={intradayDays} clock={demo ? DEMO_CLOCK : undefined} />}
             {view === 'labs' && <LabsView data={health.data} intraday={intradayDays} />}
             {view === 'settings' && (
@@ -323,7 +325,7 @@ export default function App() {
   );
 }
 
-type View = 'today' | 'activity' | 'sleep' | 'vitals' | 'body' | 'nutrition' | 'training' | 'cycle' | 'labs' | 'settings';
+type View = 'today' | 'activity' | 'sleep' | 'vitals' | 'body' | 'nutrition' | 'training' | 'blood' | 'cycle' | 'labs' | 'settings';
 
 /**
  * Who's here, in the bar: their picture and first name, or Demo in demo mode. It opens the
@@ -496,6 +498,10 @@ function PageNav({ view, setView }: { view: View; setView: (view: View) => void 
         <NavButton
           active={view === 'training'} onClick={() => setView('training')}
           icon={<Dumbbell size={14} />} label={t('app.nav.training')} color="text-orange-400"
+        />
+        <NavButton
+          active={view === 'blood'} onClick={() => setView('blood')}
+          icon={<Droplet size={14} />} label={t('app.nav.blood')} color="text-rose-400"
         />
         {tracking && (
           <NavButton

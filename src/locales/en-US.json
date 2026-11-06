@@ -101,6 +101,7 @@
       "body": "Body",
       "nutrition": "Nutrition",
       "training": "Training",
+      "blood": "Blood",
       "cycle": "Cycle",
       "labs": "Labs",
       "settings": "Settings"
@@ -127,6 +128,400 @@
     "disconnect": {
       "confirm": "Disconnect Google and permanently delete all of your data stored by Healthier?",
       "failed": "Could not delete your data. Please try again."
+    }
+  },
+  "blood": {
+    "title": "Blood tests",
+    "hint": "Your lab results, judged against the lab's own range and, for a few markers, a goal from a named guideline. A range is where 95% of healthy people land: one value outside it is a reason to test again, not a diagnosis.",
+    "latest": "Latest test",
+    "ago": "{months, plural, =0 {this month} one {# month ago} other {# months ago}}",
+    "results": "Markers",
+    "outside": "Outside range",
+    "watch": "Short of a goal",
+    "stale": "Your latest test is {months} months old, from before most of what's on the other pages. A new one gives a baseline for this cut.",
+    "empty": {
+      "title": "No blood tests yet",
+      "detail": "Import a lab report below: the PDF, or its text."
+    },
+    "flagged": {
+      "title": "Worth a look",
+      "hint": "Results outside the lab's range first, then those inside it but short of a guideline goal, with what's usually behind them and what helps."
+    },
+    "status": "{status, select, high {Above range} low {Below range} watch {Watch} ok {In range} other {No range}}",
+    "range": {
+      "span": "range {low}–{high}",
+      "below": "range under {high}",
+      "above": "range over {low}",
+      "none": "no range given"
+    },
+    "before": "before: {value} ({date})",
+    "groups": "{group, select, lipids {Blood fats} metabolic {Blood sugar} count {Blood count} vitamins {Vitamins, iron and minerals} hormones {Hormones} thyroid {Thyroid} inflammation {Inflammation} liver {Liver} kidney {Kidneys and muscle} other {Other}}",
+    "groupCount": "{count, plural, one {# marker} other {# markers}}{flagged, plural, =0 {} other {, # to look at}}",
+    "sources": "Sources",
+    "supplements": {
+      "title": "Supplements, from your results",
+      "hint": "Only supplements with real evidence behind them, each judged from your own results and your goal of keeping muscle while losing fat. General amounts from the sources, not a prescription.",
+      "verdict": "{verdict, select, take {Worth taking} consider {Consider} timing {Mind the timing} skip {Not needed} avoid {Avoid} other {Test first}}",
+      "items": {
+        "creatine": {
+          "name": "Creatine monohydrate",
+          "take": "The best-studied supplement for strength and muscle, and one of the safest: 3–5 g a day, any time of day, no loading needed. It raises blood creatinine without harming the kidneys, so mention it to your doctor; cystatin C is the kidney test it doesn't affect."
+        },
+        "vitaminD": {
+          "name": "Vitamin D",
+          "consider": "Yours was {value}, under the 75 nmol/L the lab calls optimal, and that was before the darkest months. 10 µg a day is the recommended intake; 20–50 µg a day through winter is common and well under the 100 µg upper limit. Retest after about 3 months.",
+          "skip": "Yours was {value}, in the optimal range. Check it again in late winter.",
+          "test": "Not measured. Worth adding at the next test, especially in winter."
+        },
+        "caffeine": {
+          "name": "Caffeine",
+          "timing": "Improves strength and endurance (3–6 mg per kg in studies), but 400 mg taken 6 hours before bed cost more than an hour of sleep. You lift in the afternoon and evening: keep it to sessions that end at least 6–8 hours before bed, or skip it. Sleep protects more muscle on a diet than caffeine adds."
+        },
+        "ldlFoods": {
+          "name": "Oats and plant sterols (for LDL)",
+          "consider": "Your {value} is above the guideline goal. Two food additions have EU-approved claims for lowering LDL: 3 g oat beta-glucan a day (about 75 g oats) and 1.5–3 g plant sterols a day from fortified spreads or drinks (LDL down 7–12%). Fat loss and swapping saturated for unsaturated fat lower it too.",
+          "skip": "Your LDL and ApoB are within the goal; nothing to add for them.",
+          "test": "No lipids measured. Add ApoB and LDL at the next test."
+        },
+        "omega3": {
+          "name": "Omega-3 (fish oil)",
+          "consider": "Your triglycerides ({value}) are above the goal, and omega-3 lowers them; fatty fish twice a week does the same.",
+          "skip": "It lowers triglycerides, and yours are fine, so there's little reason to take it for that. Fatty fish twice a week is still a good habit."
+        },
+        "iron": {
+          "name": "Iron",
+          "avoid": "Your haemoglobin ({value}) is above the range, so extra iron goes the wrong way. Don't take iron unless a doctor finds a need.",
+          "skip": "Your ferritin ({value}) doesn't call for it.",
+          "test": "Iron stores (ferritin) weren't measured. Never take iron without a measured need; add ferritin at the next test."
+        },
+        "b12": {
+          "name": "Vitamin B12",
+          "skip": "Yours was {value}, above the range: food, energy drinks or a supplement already cover it. If you take B12, there's no need to."
+        },
+        "magnesium": {
+          "name": "Magnesium",
+          "skip": "Yours was {value}, in range. No benefit has been shown from extra magnesium when the level is normal."
+        }
+      },
+      "sources": "Creatine: Kreider et al. 2017, ISSN position stand (J Int Soc Sports Nutr). Caffeine: Guest et al. 2021, ISSN position stand; Drake et al. 2013 (J Clin Sleep Med). Vitamin D: the lab's own assessment; EFSA upper limit 100 µg a day. Oat beta-glucan: EFSA 2010 claim (3 g a day). Plant sterols: Regulation (EU) 686/2014 (1.5–3 g a day, LDL −7 to −12%)."
+    },
+    "next": {
+      "title": "Next test",
+      "hint": "What to recheck, and what's worth adding, for someone losing fat while training hard.",
+      "recheck": "Recheck: {names}.",
+      "complete": "Your last test covered everything on the list.",
+      "how": "Take it fasting, in the morning, well hydrated, and after 2–3 days without hard training, so CK, liver enzymes and CRP aren't lifted by a session.",
+      "why": {
+        "apob": "The best single lipid marker of cardiovascular risk.",
+        "ldl": "Together with ApoB, what your diet and fat loss should move.",
+        "lpa": "Measure once in adult life (EAS 2022): set by your genes, and it changes how low LDL should be.",
+        "hba1c": "Average blood sugar over months; tracks how fat loss improves it.",
+        "glucose": "Fasting blood sugar, alongside HbA1c.",
+        "ferritin": "Iron stores. Not in your last test; needed before ever taking iron, and to read your haemoglobin.",
+        "hb": "Red blood cells and oxygen transport.",
+        "vitD": "Low in most Swedes by late winter.",
+        "crp": "Low-level inflammation; falls with fat loss.",
+        "tsh": "Thyroid function, which a long diet can nudge.",
+        "testosterone": "Shows whether the diet and sleep are costing hormones.",
+        "alt": "Liver fat, which falls with fat loss.",
+        "cystatinC": "The kidney test creatine doesn't skew."
+      }
+    },
+    "import": {
+      "title": "Import results",
+      "hint": "Choose the lab's PDF, or paste its text. The PDF is read in your browser and never uploaded; only the results go to your server. Importing the same report twice replaces it rather than adding it again.",
+      "pdf": "Choose PDF",
+      "pdfNote": "SYNLAB, Unilabs, Werlabs and similar reports",
+      "placeholder": "Paste the report's text here, or one result a line: 2026-11-06; S-LDL-kolesterol; 3.4; mmol/L; 1.2-4.3",
+      "paste": "Import text",
+      "done": "{count, plural, one {Imported # result.} other {Imported # results.}}",
+      "failed": "Couldn't read any results from that. Try the PDF, or the one-result-a-line format.",
+      "clear": "Delete all blood tests",
+      "demo": "Demo mode: made-up results, not a real person's. Sign in to import your own."
+    },
+    "disclaimer": "General information, not medical advice. Reference ranges come from your lab; goals from the named guidelines. Talk to your doctor about results outside the range, and before starting anything new if you take medicines.",
+    "markers": {
+      "apob": {
+        "name": "ApoB",
+        "about": "One ApoB sits on every particle that can lodge in artery walls, so it counts them directly: the best single lipid marker of cardiovascular risk.",
+        "goal": "goal under 1.0 g/L (European guidelines, moderate risk)",
+        "watch": "Inside the lab's range but above the 1.0 g/L European guidelines aim for. Losing fat, less saturated fat and more fibre all bring it down; your weight loss alone should move it. Recheck in 3–6 months.",
+        "high": "Above the lab's range. Losing fat and changing fat quality help, but this is one to go through with a doctor."
+      },
+      "ldl": {
+        "name": "LDL cholesterol",
+        "about": "The cholesterol in the particles that drive plaque in the arteries. Lower is better, for life.",
+        "goal": "goal under 3.0 mmol/L (European guidelines, low risk)",
+        "watch": "Above the 3.0 mmol/L European guidelines aim for at low risk. Fat loss, swapping saturated fat (butter, fatty meat, cheese) for unsaturated (oils, nuts, fish), oats and plant sterols all lower it. Recheck in 3–6 months.",
+        "high": "Above the lab's range. Diet and fat loss help; go through it with a doctor, who'll weigh it against your other risk factors."
+      },
+      "nonHdl": {
+        "name": "Non-HDL cholesterol",
+        "about": "All the cholesterol except HDL: LDL plus what's in other particles that can lodge in arteries.",
+        "goal": "goal under 3.8 mmol/L (LDL goal + 0.8, European guidelines)",
+        "watch": "Above the guideline goal for someone at low risk; it follows LDL and ApoB, and falls with them."
+      },
+      "lpa": {
+        "name": "Lp(a)",
+        "about": "A lipoprotein set mostly by your genes. It doesn't change much with diet or training, so one measurement in adult life is enough.",
+        "goal": "under 75 nmol/L adds no risk (EAS 2022)",
+        "watch": "Above 75 nmol/L adds cardiovascular risk independent of LDL. It can't be trained away; it means keeping LDL and ApoB lower matters more. Worth a word with a doctor.",
+        "high": "Above the lab's range. Go through it with a doctor: it changes how low your LDL should be."
+      },
+      "tg": {
+        "name": "Triglycerides",
+        "about": "Fat in the blood; rises with excess calories, alcohol and refined carbohydrate, and falls fast with weight loss.",
+        "goal": "goal under 1.7 mmol/L (European guidelines)",
+        "watch": "Above 1.7 mmol/L. Fat loss, less alcohol and fewer sugary drinks bring it down quickly.",
+        "high": "Above the lab's range. Usually responds well to fat loss and less alcohol. Talk to your doctor if it's still outside the range at the next test."
+      },
+      "hdl": {
+        "name": "HDL cholesterol",
+        "about": "The cholesterol carried away from tissues. Low HDL often goes with excess fat around the waist; training and fat loss raise it a little.",
+        "low": "Below the lab's range. Often goes with excess weight and inactivity, and rises as fat comes off."
+      },
+      "chol": {
+        "name": "Total cholesterol",
+        "about": "All the cholesterol together. LDL, non-HDL and ApoB say more about risk than the total."
+      },
+      "apobA1": {
+        "name": "ApoB / ApoA1 ratio",
+        "about": "The particles that deposit cholesterol against the ones that remove it."
+      },
+      "apoa1": {
+        "name": "ApoA1",
+        "about": "The main protein of HDL particles."
+      },
+      "ldlHdl": {
+        "name": "LDL / HDL ratio",
+        "about": "LDL against HDL; ApoB and LDL on their own are the better guides."
+      },
+      "glucose": {
+        "name": "Fasting glucose",
+        "about": "Blood sugar after a night without food.",
+        "goal": "under 5.6 mmol/L fasting (ADA)",
+        "watch": "In the lab's range but at the top of normal by the American Diabetes Association's cut-off. With HbA1c and insulin normal it's most likely fine; fat loss and training improve it. Watch it at the next test.",
+        "high": "Above the lab's range. Talk to your doctor if it's still outside the range at the next test."
+      },
+      "hba1c": {
+        "name": "HbA1c",
+        "about": "Average blood sugar over the last 2–3 months: steadier than a single glucose reading.",
+        "goal": "under 39 mmol/mol (ADA)",
+        "watch": "Above 39 mmol/mol, the start of the prediabetes range (ADA). Fat loss and training bring it down. Recheck in 3–6 months.",
+        "high": "Above the lab's range. Talk to your doctor if it's still outside the range at the next test."
+      },
+      "insulin": {
+        "name": "Fasting insulin",
+        "about": "How much insulin it takes to hold your fasting blood sugar; low with normal glucose means good insulin sensitivity."
+      },
+      "cpeptide": {
+        "name": "C-peptide",
+        "about": "Made alongside insulin; shows how much insulin your pancreas produces."
+      },
+      "hb": {
+        "name": "Haemoglobin",
+        "about": "The oxygen-carrying protein in red blood cells.",
+        "high": "Above the lab's range. Common reasons are being short of fluid when the sample was taken, smoking or nicotine, testosterone use, and in some people breathing pauses during sleep. Retest after drinking normally; if it's still high, a doctor should look at it.",
+        "low": "Below the lab's range, which can mean too little iron. Talk to your doctor if it's still outside the range at the next test."
+      },
+      "hct": {
+        "name": "Haematocrit (EVF)",
+        "about": "The share of the blood that's red cells. It moves with haemoglobin.",
+        "high": "Above the lab's range, alongside haemoglobin. The same reasons apply: fluid at the time of the test first. Retest well hydrated; if it stays high, see a doctor."
+      },
+      "rbc": {
+        "name": "Red blood cells",
+        "about": "The number of red cells.",
+        "high": "At or above the top of the range, in line with haemoglobin."
+      },
+      "mcv": {
+        "name": "MCV",
+        "about": "The size of red blood cells; small ones can mean low iron, large ones low B12 or folate."
+      },
+      "mch": {
+        "name": "MCH",
+        "about": "Haemoglobin per red cell."
+      },
+      "mchc": {
+        "name": "MCHC",
+        "about": "Haemoglobin concentration in red cells."
+      },
+      "wbc": {
+        "name": "White blood cells",
+        "about": "Immune cells; high with infections, low after some viral illnesses."
+      },
+      "neutrophils": {
+        "name": "Neutrophils",
+        "about": "The most common white cell, first out against bacteria."
+      },
+      "lymphocytes": {
+        "name": "Lymphocytes",
+        "about": "White cells that fight viruses and make antibodies."
+      },
+      "monocytes": {
+        "name": "Monocytes",
+        "about": "White cells that clean up and fight infection."
+      },
+      "eosinophils": {
+        "name": "Eosinophils",
+        "about": "White cells involved in allergies."
+      },
+      "basophils": {
+        "name": "Basophils",
+        "about": "A rare white cell type."
+      },
+      "platelets": {
+        "name": "Platelets",
+        "about": "The cells that start blood clotting."
+      },
+      "vitD": {
+        "name": "Vitamin D",
+        "about": "Made in the skin from sunlight, which in Sweden gives almost none from October to March.",
+        "goal": "75 nmol/L or more is optimal (lab's comment)",
+        "watch": "Under the 75 nmol/L the lab calls optimal, and it falls further through winter. A daily supplement through the dark months is the simple fix; see Supplements.",
+        "low": "Below the lab's range. A supplement is the usual fix; a doctor may suggest a higher dose for a while."
+      },
+      "ferritin": {
+        "name": "Ferritin",
+        "about": "Your iron stores. Low ferritin drains energy and endurance well before haemoglobin drops.",
+        "low": "Below the lab's range: low iron stores. Talk to your doctor if it's still outside the range at the next test.",
+        "high": "Above the lab's range. Can rise with inflammation or iron overload. Talk to your doctor if it's still outside the range at the next test."
+      },
+      "iron": {
+        "name": "Iron",
+        "about": "Iron in the blood right now; varies a lot from day to day, so ferritin says more."
+      },
+      "transferrinSat": {
+        "name": "Transferrin saturation",
+        "about": "How much of the iron transport capacity is in use."
+      },
+      "b12": {
+        "name": "Vitamin B12",
+        "about": "Needed for red blood cells and nerves; found in meat, fish, eggs and dairy.",
+        "high": "Above the lab's range. Almost always from supplements, energy drinks or fortified foods, and harmless in itself; if you take B12, there's no need to."
+      },
+      "folate": {
+        "name": "Folate",
+        "about": "A B vitamin from greens, legumes and whole grains."
+      },
+      "magnesium": {
+        "name": "Magnesium",
+        "about": "A mineral for muscle and nerve function."
+      },
+      "testosterone": {
+        "name": "Testosterone",
+        "about": "The main male sex hormone; matters for muscle, strength and energy. Very large deficits, very low fat intake and short sleep can all lower it.",
+        "low": "Below the range. Short sleep, a large deficit and very low fat intake can lower it; talk to your doctor if it's still outside the range at the next test."
+      },
+      "testosteroneBio": {
+        "name": "Bioavailable testosterone",
+        "about": "The part of testosterone not tightly bound, available to tissues."
+      },
+      "tShbg": {
+        "name": "Testosterone / SHBG ratio",
+        "about": "A rough measure of free testosterone."
+      },
+      "shbg": {
+        "name": "SHBG",
+        "about": "The protein that binds testosterone in the blood."
+      },
+      "lh": {
+        "name": "LH",
+        "about": "The pituitary signal that tells the testes to make testosterone."
+      },
+      "prolactin": {
+        "name": "Prolactin",
+        "about": "A pituitary hormone; high values can lower testosterone."
+      },
+      "igf1": {
+        "name": "IGF-1",
+        "about": "Made in response to growth hormone; falls with large calorie deficits."
+      },
+      "dheas": {
+        "name": "DHEA-S",
+        "about": "An adrenal hormone, a precursor of sex hormones."
+      },
+      "cortisol": {
+        "name": "Cortisol",
+        "about": "The stress hormone; it swings through the day, so its range depends on when the sample was taken."
+      },
+      "tsh": {
+        "name": "TSH",
+        "about": "The pituitary signal to the thyroid; the first thyroid test.",
+        "high": "Above the range: the thyroid may be underactive. Talk to your doctor if it's still outside the range at the next test.",
+        "low": "Below the range: the thyroid may be overactive. Talk to your doctor if it's still outside the range at the next test."
+      },
+      "ft4": {
+        "name": "Free T4",
+        "about": "The thyroid's main hormone."
+      },
+      "ft3": {
+        "name": "Free T3",
+        "about": "The active thyroid hormone; can fall in a long, steep diet."
+      },
+      "crp": {
+        "name": "CRP",
+        "about": "Inflammation in the body. High after infections and injuries; low-level rises go with excess body fat.",
+        "goal": "under 1 mg/L is low cardiovascular risk (AHA/CDC)",
+        "watch": "In the lab's range, but between 1 and 3 mg/L, the band linked to average cardiovascular risk. It falls as body fat comes off. A cold or hard training in the days before the test can raise it too.",
+        "high": "Above the lab's range: usually an infection or injury. Retest when you're well."
+      },
+      "ddimer": {
+        "name": "D-dimer",
+        "about": "A breakdown product of blood clots."
+      },
+      "alt": {
+        "name": "ALT (ALAT)",
+        "about": "A liver enzyme; rises with fat in the liver, alcohol, some medicines and very hard training.",
+        "high": "Above the range. Fat in the liver is the most common reason and improves with fat loss; hard training the days before also raises it. Talk to your doctor if it's still outside the range at the next test."
+      },
+      "ast": {
+        "name": "AST (ASAT)",
+        "about": "An enzyme in liver and muscle; hard training raises it for a few days.",
+        "high": "Above the range. Hard training the days before the test raises it; otherwise talk to your doctor if it's still outside the range at the next test."
+      },
+      "ggt": {
+        "name": "GGT",
+        "about": "A liver enzyme sensitive to alcohol."
+      },
+      "alp": {
+        "name": "ALP",
+        "about": "An enzyme from liver and bone."
+      },
+      "bilirubin": {
+        "name": "Bilirubin",
+        "about": "A breakdown product of red cells, cleared by the liver."
+      },
+      "albumin": {
+        "name": "Albumin",
+        "about": "The main blood protein, made by the liver."
+      },
+      "cystatinC": {
+        "name": "Cystatin C",
+        "about": "A kidney marker that, unlike creatinine, doesn't depend on muscle mass or creatine supplements."
+      },
+      "egfrCys": {
+        "name": "eGFR (cystatin C)",
+        "about": "Kidney filtration estimated from cystatin C."
+      },
+      "egfrCrea": {
+        "name": "eGFR (creatinine)",
+        "about": "Kidney filtration estimated from creatinine; reads low in muscular people and on creatine."
+      },
+      "egfr": {
+        "name": "eGFR (mean)",
+        "about": "Kidney filtration, the mean of the two estimates."
+      },
+      "creatinine": {
+        "name": "Creatinine",
+        "about": "A waste product of muscle, cleared by the kidneys. Higher with more muscle and with creatine supplements.",
+        "high": "Above the range. Muscle mass, creatine supplements and hard training raise it; cystatin C tells whether the kidneys are really involved."
+      },
+      "ck": {
+        "name": "CK",
+        "about": "An enzyme that leaks from muscle after hard training; very high values a few days after a session are normal.",
+        "high": "Above the range. Usual in the days after hard training; retest after 3–4 days without heavy sessions."
+      }
     }
   },
   "ui": {

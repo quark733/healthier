@@ -201,6 +201,25 @@ const MIGRATIONS: { id: number; name: string; sql: string }[] = [
       );
     `,
   },
+  {
+    id: 11,
+    name: 'blood test results',
+    sql: `
+      -- Blood test results the person imported from a lab report (pipeline/bloodwork.ts): one row
+      -- a result, keyed by the day and the lab's own name for it, gone with the account.
+      CREATE TABLE user_lab_results (
+        user_id  uuid NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+        date     date NOT NULL,
+        name     text NOT NULL,
+        value    double precision NOT NULL,
+        cmp      text,
+        unit     text,
+        ref_low  double precision,
+        ref_high double precision,
+        PRIMARY KEY (user_id, date, name)
+      );
+    `,
+  },
 ];
 
 export function createDb(connectionString: string): Db {
