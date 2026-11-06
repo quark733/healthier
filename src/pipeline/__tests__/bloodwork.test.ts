@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { histories, markerFor, missingMarkers, parseLabText, rangeFor, statusOf } from '../bloodwork';
+import { histories, latestRound, markerFor, missingMarkers, parseLabText, rangeFor, statusOf } from '../bloodwork';
 import { supplementAdvice } from '../supplements';
 
 // A made-up report, laid out the way a Swedish lab prints one. Not a real person's results.
@@ -90,4 +90,11 @@ test('history, what to add next time, and supplement advice', () => {
   assert.equal(advice.vitaminD, 'skip'); // 80 now
   assert.equal(advice.iron, 'avoid'); // haemoglobin above range
   assert.equal(advice.ldlFoods, 'consider'); // LDL 3.4
+});
+
+test('a slow analysis reported days later belongs to the same test', () => {
+  const { results } = parseLabText(REPORT + '\nS-IGF-1 µg/L 210 93 - 250 2026-03-05 15:17');
+  const round = latestRound(results)!;
+  assert.equal(round.date, '2026-03-02');
+  assert.equal(round.results.length, results.length);
 });

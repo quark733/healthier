@@ -476,12 +476,20 @@ function PageNav({ view, setView }: { view: View; setView: (view: View) => void 
           icon={<User size={14} />} label={t('app.nav.today')}
         />
         <NavButton
-          active={view === 'activity'} onClick={() => setView('activity')}
-          icon={<Footprints size={14} />} label={t('app.nav.activity')} color={DOMAIN.movement.text}
+          active={view === 'nutrition'} onClick={() => setView('nutrition')}
+          icon={<Utensils size={14} />} label={t('app.nav.nutrition')} color={DOMAIN.wellbeing.text}
+        />
+        <NavButton
+          active={view === 'training'} onClick={() => setView('training')}
+          icon={<Dumbbell size={14} />} label={t('app.nav.training')} color="text-orange-400"
         />
         <NavButton
           active={view === 'sleep'} onClick={() => setView('sleep')}
           icon={<Moon size={14} />} label={t('app.nav.sleep')} color={DOMAIN.sleep.text}
+        />
+        <NavButton
+          active={view === 'activity'} onClick={() => setView('activity')}
+          icon={<Footprints size={14} />} label={t('app.nav.activity')} color={DOMAIN.movement.text}
         />
         <NavButton
           active={view === 'vitals'} onClick={() => setView('vitals')}
@@ -490,14 +498,6 @@ function PageNav({ view, setView }: { view: View; setView: (view: View) => void 
         <NavButton
           active={view === 'body'} onClick={() => setView('body')}
           icon={<PersonStanding size={14} />} label={t('app.nav.body')} color={DOMAIN.body.text}
-        />
-        <NavButton
-          active={view === 'nutrition'} onClick={() => setView('nutrition')}
-          icon={<Utensils size={14} />} label={t('app.nav.nutrition')} color={DOMAIN.wellbeing.text}
-        />
-        <NavButton
-          active={view === 'training'} onClick={() => setView('training')}
-          icon={<Dumbbell size={14} />} label={t('app.nav.training')} color="text-orange-400"
         />
         <NavButton
           active={view === 'blood'} onClick={() => setView('blood')}

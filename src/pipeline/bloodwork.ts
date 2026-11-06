@@ -27,6 +27,8 @@ export interface Marker {
   femaleRange?: [number | null, number | null];
   /** A goal tighter than the reference range, from a named guideline (its words are in the language file). */
   goal?: { below?: number; above?: number };
+  /** The unit the goal is in; a result in another unit is judged by the range alone. */
+  goalUnit?: RegExp;
 }
 
 /**
@@ -38,7 +40,7 @@ export const MARKERS: Marker[] = [
   { id: 'apob', group: 'lipids', match: /apo(lipoprotein)?\s*b(?!\s*\/)\b(?!.*a1)/i, goal: { below: 1.0 } },
   { id: 'ldl', group: 'lipids', match: /^(?:[a-z]{1,3}-)?ldl[\s-]*(kolesterol|cholesterol)|ldl\s+direkt/i, goal: { below: 3.0 } },
   { id: 'nonHdl', group: 'lipids', match: /non-?hdl/i, goal: { below: 3.8 } },
-  { id: 'lpa', group: 'lipids', match: /\blp\s*\(a\)|lipoprotein\s*\(a\)/i, goal: { below: 75 } },
+  { id: 'lpa', group: 'lipids', match: /\blp\s*\(a\)|lipoprotein\s*\(a\)/i, goal: { below: 75 }, goalUnit: /nmol/i },
   { id: 'tg', group: 'lipids', match: /triglycerid/i, goal: { below: 1.7 } },
   { id: 'hdl', group: 'lipids', match: /^(?:[a-z]{1,3}-)?hdl[\s-]*(kolesterol|cholesterol)/i },
   { id: 'chol', group: 'lipids', match: /^(?:[a-z]{1,3}-)?(kolesterol|cholesterol|total cholesterol)$/i },
@@ -254,8 +256,9 @@ export function statusOf(r: LabResult, gender: Gender | null): Status {
 }
 
 function goalStatus(r: LabResult, otherwise: Status = 'ok'): Status {
-  const goal = MARKERS.find((m) => m.id === r.marker)?.goal;
-  if (!goal) return otherwise;
+  const m = MARKERS.find((x) => x.id === r.marker);
+  const goal = m?.goal;
+  if (!goal || (m.goalUnit && !m.goalUnit.test(r.unit ?? ''))) return otherwise === 'unknown' ? 'unknown' : otherwise;
   if (goal.below !== undefined && r.value >= goal.below && r.cmp !== '<') return 'watch';
   if (goal.above !== undefined && r.value < goal.above && r.cmp !== '>') return 'watch';
   return otherwise === 'unknown' ? 'ok' : otherwise;
@@ -294,4 +297,20 @@ export const WORTH_TESTING = ['apob', 'ldl', 'lpa', 'hba1c', 'glucose', 'ferriti
 export function missingMarkers(results: LabResult[]): string[] {
   const have = new Set(results.map((r) => r.marker));
   return WORTH_TESTING.filter((m) => !have.has(m));
+}
+
+/**
+ * The latest test: every result reported within 14 days of the newest one, since a lab reports
+ * slow analyses (IGF-1, say) days after the rest of the same sample. Dated by the day most of its
+ * results carry.
+ */
+export function latestRound(results: LabResult[]): { date: CivilDate; results: LabResult[] } | null {
+  if (!results.length) return null;
+  const newest = results.reduce((d, r) => (r.date > d ? r.date : d), results[0].date);
+  const from = new Date(Date.parse(newest) - 14 * 86_400_000).toISOString().slice(0, 10);
+  const round = results.filter((r) => r.date >= from);
+  const counts = new Map<CivilDate, number>();
+  for (const r of round) counts.set(r.date, (counts.get(r.date) ?? 0) + 1);
+  const date = [...counts.entries()].sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? 1 : -1))[0][0];
+  return { date, results: round };
 }

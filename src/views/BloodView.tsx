@@ -5,7 +5,7 @@ import { daysBetween, type CivilDate } from '../lib/date';
 import { useLabs } from '../hooks/useLabs';
 import { pdfLines } from '../lib/pdfText';
 import {
-  BLOOD_GROUPS, MARKERS, histories, missingMarkers, rangeFor, statusOf,
+  BLOOD_GROUPS, MARKERS, histories, latestRound, missingMarkers, rangeFor, statusOf,
   type BloodGroup, type LabResult, type MarkerHistory, type Status,
 } from '../pipeline/bloodwork';
 import { supplementAdvice, type SupplementVerdict } from '../pipeline/supplements';
@@ -100,7 +100,7 @@ function MarkerRow({ h, gender, explainStatus = false }: { h: MarkerHistory; gen
       <div className="flex items-baseline justify-between gap-3">
         <div className="min-w-0">
           <span className="text-detail text-zinc-200">{nameOf(h)}</span>
-          {h.marker && <span className="text-note text-zinc-500 ml-2">{h.name}</span>}
+          {h.marker && <span className="hidden sm:inline text-note text-zinc-500 ml-2">{h.name}</span>}
         </div>
         <div className="flex items-center gap-2 shrink-0">
           <span className="text-detail tabular-nums text-zinc-100">{valueText(r)}</span>
@@ -123,8 +123,9 @@ function MarkerRow({ h, gender, explainStatus = false }: { h: MarkerHistory; gen
 export function BloodView({ demo, today, gender }: { demo: boolean; today: CivilDate; gender: Gender | null }) {
   const labs = useLabs(demo);
   const all = useMemo(() => histories(labs.results), [labs.results]);
-  const latestDate = labs.results.reduce<CivilDate | null>((d, r) => (!d || r.date > d ? r.date : d), null);
-  const latestTest = latestDate ? labs.results.filter((r) => r.date === latestDate) : [];
+  const round = latestRound(labs.results);
+  const latestDate = round?.date ?? null;
+  const latestTest = round?.results ?? [];
   const flagged = all
     .map((h) => ({ h, s: statusOf(h.latest, gender) }))
     .filter((x) => x.s === 'high' || x.s === 'low' || x.s === 'watch')
