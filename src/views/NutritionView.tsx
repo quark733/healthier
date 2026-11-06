@@ -16,6 +16,7 @@ import { useTargets } from '../hooks/useTargets';
 import { suggest } from '../pipeline/foods';
 import type { Targets } from '../pipeline/targets';
 import { TargetsCard } from './TargetsCard';
+import { ExpenditureCard } from './ExpenditureCard';
 import { FoodLine, remainingOf } from './WellbeingCards';
 
 /**
@@ -248,6 +249,7 @@ export function NutritionView({ data }: { data: SyncResult }) {
       </div>
 
       <RestOfDay day={days.at(-1)} targets={targets} />
+      <ExpenditureCard days={days} today={days.at(-1)!.date} />
 
       <div className="flex items-center justify-between px-1">
         <h2 className="text-section uppercase text-page-ink">{t('nutrition.overTime.title')}</h2>

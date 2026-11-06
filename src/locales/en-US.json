@@ -1338,6 +1338,8 @@
       "pace": "{kg} kg/week ({pct}%)",
       "trend": "Your pace, 5 weeks",
       "trendNone": "Not enough weigh-ins yet",
+      "burn": "You burn, 4 weeks",
+      "burnValue": "≈ {kcal} kcal a day",
       "fat": "Fat, 8 weeks",
       "lean": "Lean mass, 8 weeks",
       "perWeek": "{kg} kg/week",
@@ -2088,6 +2090,18 @@
       "title": "Estimated energy balance",
       "hint": "Energy logged less energy burned, as your watch or phone estimates it. Both are estimates, so read the direction over weeks rather than any one day; a day logged only in part shows as a deficit it wasn't.",
       "series": "{bucket, select, day {logged less burned} week {weekly average, logged less burned} other {monthly average, logged less burned}}"
+    },
+    "burn": {
+      "title": "What you really burn",
+      "hint": "Worked out from your own numbers, the way MacroFactor does it: the food you logged over the last 4 weeks and what your weight actually did. If you ate 3,000 kcal a day and lost 0.5 kg a week, you burned about 3,550. No watch or formula guesses it. It's only as right as your logging: food that isn't logged reads as burning less.",
+      "notYet": "Needs at least 14 days of logged food in the last 4 weeks, and weigh-ins spread over 3 weeks or more. You have {logged} logged days so far.",
+      "value": "≈ {kcal} kcal a day",
+      "from": "From {days} logged days (on average {eaten} kcal eaten) and {weighIns} weigh-ins, a trend of {kg} kg a week.{confidence, select, low { Still firming up: give it a couple more weeks.} other {}}",
+      "pace": "{goal, select, yes {Your goal: } other {}}{pct}% a week ({kg} kg)",
+      "plan": "{kcal} kcal{macros, select, yes { · P {p} · C {c} · F {f} g} other {}}",
+      "use": "{current, select, yes {In use} other {Use}}",
+      "note": "0.5–1% of bodyweight a week is the range advised for keeping muscle (Helms et al. 2014). Protein stays at your target; carbs take most of the change. MyFitnessPal keeps its own goal, so change it there too if you switch.",
+      "saved": "Your energy target is now {kcal} kcal."
     },
     "rest": {
       "title": "Rest of today",
@@ -2852,6 +2866,20 @@
     "howItWorks": "How it works"
   },
   "data": {
+    "claude": {
+      "title": "Claude access",
+      "hint": "Lets Claude read your data, so you can ask about your real numbers in a chat: your week, your weight trend, your training, your blood tests. Read-only: it can't change or delete anything. Your data goes to Anthropic when Claude reads it. Turn it off here at any time.",
+      "demo": "Demo mode: sign in to give Claude access to your own data.",
+      "on": "On since {date}. The address was shown once when it was made; make a new one if you've lost it.",
+      "off": "Off. Make an address to connect Claude.",
+      "once": "Your connector address. It's shown only now, and it works like a password: anyone with it can read your data. Don't share it.",
+      "copy": "{copied, select, yes {Copied} other {Copy address}}",
+      "step1": "In Claude, open Settings → Connectors → Add custom connector.",
+      "step2": "Name it HealthCheck and paste the address as the URL. No sign-in is needed.",
+      "step3": "In a chat, turn the connector on and ask, for example, how your week went.",
+      "make": "{has, select, yes {Replace address} other {Make an address}}",
+      "revoke": "Turn off"
+    },
     "sources": {
       "title": "Devices and sources",
       "hint": "Google Health combines what your devices and apps send it. Here you can see which one each reading came from, choose which ones count, and which comes first.",
@@ -2939,6 +2967,7 @@
         "about": "About"
       },
       "summaries": {
+        "claude": "Let Claude read your data in a chat",
         "devices": "{first} first, then {rest}",
         "devicesNone": "Nothing reported yet",
         "goals": "{steps} steps · {brisk} brisk min · {sleep} sleep",

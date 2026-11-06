@@ -1,5 +1,5 @@
 import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { BookOpen, ChevronLeft, ChevronRight, CircleDotDashed, CircleUserRound, Database, Target, Watch, type LucideIcon } from 'lucide-react';
+import { BookOpen, ChevronLeft, ChevronRight, CircleDotDashed, CircleUserRound, Database, Sparkles, Target, Watch, type LucideIcon } from 'lucide-react';
 import { t, type MessageKey } from '../i18n';
 import { formatInteger } from '../i18n/format';
 import { estimatedSleepTarget } from '../pipeline/derive';
@@ -16,6 +16,7 @@ import { DataStreams, streamsSummary } from './DataStreams';
 import { StatusCard } from './DataStatus';
 import { SourcesCard, sourcesSummary, useSources } from './SourcesCard';
 import { SECTION_TONE } from './sectionTones';
+import { ClaudeAccessCard } from './ClaudeAccessCard';
 
 /**
  * The Settings page: where your data stands, then its sections in three groups, each with a line on
@@ -24,10 +25,10 @@ import { SECTION_TONE } from './sectionTones';
  * open section fills the right, Devices and sources until another is picked.
  */
 
-export type SectionId = 'devices' | 'streams' | 'goals' | 'cycle' | 'facts' | 'account';
+export type SectionId = 'devices' | 'streams' | 'claude' | 'goals' | 'cycle' | 'facts' | 'account';
 
 const GROUPS: { title: MessageKey; sections: SectionId[] }[] = [
-  { title: 'data.overview.groups.data', sections: ['devices', 'streams'] },
+  { title: 'data.overview.groups.data', sections: ['devices', 'streams', 'claude'] },
   { title: 'data.overview.groups.preferences', sections: ['goals', 'cycle'] },
   { title: 'data.overview.groups.about', sections: ['facts', 'account'] },
 ];
@@ -40,6 +41,7 @@ const FIRST: SectionId = 'devices';
 const LOOK: Record<SectionId, { title: MessageKey; icon: LucideIcon }> = {
   devices: { title: 'data.sources.title', icon: Watch },
   streams: { title: 'data.streams.title', icon: Database },
+  claude: { title: 'data.claude.title', icon: Sparkles },
   goals: { title: 'data.goals.title', icon: Target },
   cycle: { title: 'data.cycle.title', icon: CircleDotDashed },
   facts: { title: 'data.facts.title', icon: BookOpen },
@@ -154,6 +156,7 @@ export function SettingsView({
   const summaries: Record<SectionId, string> = {
     devices: sources.view ? sourcesSummary(sources.view) : '',
     streams: streamsSummary(data),
+    claude: t('data.overview.summaries.claude'),
     goals: t('data.overview.summaries.goals', {
       steps: formatInteger(goals.steps),
       brisk: formatInteger(goals.briskMinutes),
@@ -173,6 +176,8 @@ export function SettingsView({
         return <SourcesCard data={data} live={live} sources={sources} />;
       case 'streams':
         return <DataStreams data={data} />;
+      case 'claude':
+        return <ClaudeAccessCard demo={!live} />;
       case 'goals':
         return <GoalsCard autoNeed={autoNeed} />;
       case 'cycle':

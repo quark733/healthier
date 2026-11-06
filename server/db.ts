@@ -249,6 +249,18 @@ const MIGRATIONS: { id: number; name: string; sql: string }[] = [
       CREATE INDEX user_log_user_date ON user_log (user_id, date);
     `,
   },
+  {
+    id: 14,
+    name: 'read keys for Claude',
+    sql: `
+      -- The key that lets Claude read this person's data over MCP (server/mcp.ts), as a hash.
+      CREATE TABLE mcp_keys (
+        user_id    uuid PRIMARY KEY REFERENCES users (id) ON DELETE CASCADE,
+        key_hash   bytea NOT NULL UNIQUE,
+        created_at timestamptz NOT NULL DEFAULT now()
+      );
+    `,
+  },
 ];
 
 export function createDb(connectionString: string): Db {

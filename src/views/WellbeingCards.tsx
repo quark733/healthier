@@ -4,6 +4,7 @@ import { Dumbbell, Scale, Utensils } from 'lucide-react';
 import { t, type MessageKey } from '../i18n';
 import { formatCivilLong, formatHours, formatInteger, formatList } from '../i18n/format';
 import type { Dose } from '../pipeline/trainingDose';
+import { estimateExpenditure } from '../pipeline/expenditure';
 import { CHECKIN_ITEMS, caffeineEffect, judgeCheckin, type Checkin, type CheckinItem } from '../pipeline/checkin';
 import { addDays, daysBetween, type CivilDate } from '../lib/date';
 import { bodyComposition, series, weightTrend } from '../pipeline/derive';
@@ -210,6 +211,7 @@ export function WeightGoal({ days, targets, today }: { days: DailyRecord[]; targ
   const trend = weightTrend(weights.slice(-35));
   const pace = weightPace(latest?.value ?? null, targets, today);
   const trendPct = trend && latest?.value ? (-100 * trend.kgPerWeek) / latest.value : null;
+  const burn = estimateExpenditure(days, today);
   // Fat and lean from the scale's body-fat readings, over the last 8 weeks.
   const comp = bodyComposition(days.filter((d) => d.date > addDays(today, -56)));
   const lost = comp ? -(comp.fatKgPerWeek + comp.leanKgPerWeek) : 0;
@@ -229,6 +231,9 @@ export function WeightGoal({ days, targets, today }: { days: DailyRecord[]; targ
             <Row dense label={t('today.weight.trend')}>
               {trend && trendPct !== null ? t('today.weight.pace', { kg: fmtNum(-trend.kgPerWeek, 2), pct: fmtNum(trendPct, 2) }) : t('today.weight.trendNone')}
             </Row>
+            {burn && (
+              <Row dense label={t('today.weight.burn')}>{t('today.weight.burnValue', { kcal: formatInteger(burn.kcal) })}</Row>
+            )}
           </div>
         ) : (
           <p className="text-caption text-zinc-500">{t('today.weight.noTarget')}</p>

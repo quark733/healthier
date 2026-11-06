@@ -52,6 +52,7 @@ const tone = {
 export const SECTION_TONE: Record<SectionId, SectionTone> = {
   devices: tone.violet,
   streams: tone.sky,
+  claude: tone.amber,
   goals: tone.emerald,
   cycle: tone.pink,
   facts: tone.amber,
