@@ -98,3 +98,12 @@ test('a slow analysis reported days later belongs to the same test', () => {
   assert.equal(round.date, '2026-03-02');
   assert.equal(round.results.length, results.length);
 });
+
+test('1177 names with long dashes match, and urine results are not taken for blood markers', () => {
+  assert.equal(markerFor('P—Glukos')?.id, 'glucose');
+  assert.equal(markerFor('B—Leukocyter')?.id, 'wbc');
+  assert.equal(markerFor('U—Leukocyter (remsa)'), null);
+  assert.equal(markerFor('U-Albumin'), null);
+  assert.equal(markerFor('U—Glukos (remsa)'), null);
+  assert.equal(markerFor('P—Albumin')?.id, 'albumin');
+});

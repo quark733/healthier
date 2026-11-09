@@ -109,7 +109,9 @@ export const MARKERS: Marker[] = [
 
 /** The marker a lab's name for a result stands for, or null. eGFR and cystatin come before creatinine. */
 export function markerFor(name: string): Marker | null {
-  const n = name.replace(/\s+/g, ' ').trim();
+  // 1177 writes "P—Glukos" with a long dash; urine results ("U-Glukos (remsa)") are not blood markers.
+  const n = name.replace(/[—–]/g, '-').replace(/\s+/g, ' ').trim();
+  if (/^u-|\(remsa\)/i.test(n)) return null;
   // eGFR names also say "krea" and "CystC": they're eGFR, not the markers they're computed from.
   const ordered = /egfr/i.test(n) ? MARKERS.filter((m) => m.id.startsWith('egfr')) : MARKERS.filter((m) => !m.id.startsWith('egfr'));
   return ordered.find((m) => m.match.test(n)) ?? null;
