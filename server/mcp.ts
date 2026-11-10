@@ -13,8 +13,8 @@ import { readLogEntry, type LogEntry } from '../src/pipeline/healthLog';
 import { recentLoad, sessionSets, sessionVolume, type StrengthSession } from '../src/pipeline/strength';
 import { setsPerMuscle } from '../src/pipeline/muscles';
 import { getStrengthSessions } from './strength-repo';
-import { addFoodEntries, clearFoodDays, deleteFoodEntry, getFoodEntries } from './foodlog-repo';
-import { byDate, MEALS, readFoodEntry, totalsOf, type FoodEntry } from '../src/pipeline/foodLog';
+import { addFoodEntries, clearFoodDays, deleteFoodEntry, getFoodEntries, getFoodEntry, updateFoodAmounts } from './foodlog-repo';
+import { byDate, MEALS, readFoodEntry, scaleEntry, totalsOf, type FoodEntry } from '../src/pipeline/foodLog';
 import { getSyncState, getUser } from './repo';
 import { loadHistory } from './sync';
 import { randomToken, sha256 } from './crypto';
@@ -242,6 +242,21 @@ function buildServer(deps: Deps, userId: string, scope: Scope): McpServer {
         await clearFoodDays(deps.db, userId, [date]);
         await addFoodEntries(deps.db, userId, read);
         return text({ date, saved: read.length, dayTotals: roundTotals(totalsOf(read)) });
+      },
+    );
+
+    server.registerTool(
+      'set_food_grams',
+      {
+        description: "Change how much of one diary entry was eaten (by its id from get_food_log or log_meal). Its kcal and macros scale with the new weight. Only for entries logged with grams.",
+        inputSchema: { id: z.string().regex(/^\d+$/), grams: z.number().min(1).max(10000) },
+      },
+      async ({ id, grams }) => {
+        const e = await getFoodEntry(deps.db, userId, id);
+        const scaled = e ? scaleEntry(e, grams) : null;
+        if (!scaled) return text({ updated: false, reason: e ? 'entry has no grams to scale from' : 'not found' });
+        await updateFoodAmounts(deps.db, userId, scaled);
+        return text({ updated: true, entry: scaled });
       },
     );
 

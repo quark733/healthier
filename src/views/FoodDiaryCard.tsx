@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
-import { ChevronLeft, ChevronRight, Trash2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Copy, Trash2 } from 'lucide-react';
 import { t } from '../i18n';
+import { rich } from '../i18n/react';
 import { formatCivilLong, formatInteger, formatMonthYear, weekdayLetter } from '../i18n/format';
 import { addDays, isoWeekdayIndex, type CivilDate } from '../lib/date';
 import type { DailyRecord } from '../types/health';
@@ -14,6 +15,9 @@ import { Card, CardHead, fmtNum } from '../ui/primitives';
  * meals, foods, grams and macros, its total and what was left of the targets. Days Claude wrote
  * (or that were pasted) are the diary; a day with only a diary app's numbers shows those.
  */
+
+/** Energy and the macros in the colours the Nutrition charts use. */
+const COLOR = { energy: 'var(--amber-400)', protein: 'var(--rose-400)', carbs: 'var(--teal-400)', fat: 'var(--violet-400)' } as const;
 
 const n0 = (v: number) => formatInteger(Math.round(v));
 const macros = (x: { kcal: number; protein: number; carbs: number; fat: number }) => ({
@@ -39,10 +43,15 @@ function shiftMonth(month: string, by: number): string {
 }
 
 export function FoodDiaryCard({ days, today, foodLog }: { days: DailyRecord[]; today: CivilDate; foodLog: FoodLog }) {
-  const { entries, importText, remove } = foodLog;
+  const { entries, importText, remove, setGrams, copyTo } = foodLog;
+  const [copied, setCopied] = useState<string | null>(null);
   const { targets } = useTargets();
   const [month, setMonth] = useState(today.slice(0, 7));
-  const [chosen, setChosen] = useState<CivilDate>(today);
+  const [chosen, setChosenRaw] = useState<CivilDate>(today);
+  const setChosen = (d: CivilDate) => {
+    setChosenRaw(d);
+    setCopied(null);
+  };
   const [pasting, setPasting] = useState(false);
 
   const dated = useMemo(() => byDate(entries), [entries]);
@@ -99,6 +108,11 @@ export function FoodDiaryCard({ days, today, foodLog }: { days: DailyRecord[]; t
                   <span className={`text-micro tabular-nums ${diary ? 'text-amber-300' : 'text-zinc-600'}`}>
                     {kcal !== undefined && kcal > 0 ? n0(kcal) : ' '}
                   </span>
+                  {diary && targets.kcal !== null && (
+                    <span className="mt-0.5 h-0.5 w-6 rounded-full bg-zinc-800 overflow-hidden">
+                      <span className="block h-full" style={{ width: `${Math.min(100, (100 * (kcal ?? 0)) / targets.kcal)}%`, background: COLOR.energy }} />
+                    </span>
+                  )}
                 </button>
               );
             })}
@@ -107,22 +121,42 @@ export function FoodDiaryCard({ days, today, foodLog }: { days: DailyRecord[]; t
         </div>
 
         <div>
-          <p className="text-detail text-zinc-100 mb-2">{formatCivilLong(chosen)}</p>
+          <p className="text-detail text-zinc-100 mb-3">{formatCivilLong(chosen)}</p>
           {total ? (
             <>
+              <Bars total={total} targets={targets} />
               {mealsOf(dayEntries).map((m) => (
                 <div key={m.meal} className="mb-3">
-                  <div className="flex items-baseline justify-between gap-3 border-b border-zinc-800 pb-1 mb-1">
+                  <div className="flex items-center justify-between gap-3 border-b border-zinc-800 pb-1 mb-1">
                     <span className="text-caption font-medium text-zinc-200">{t('nutrition.diary.meal', { meal: m.meal })}</span>
-                    <span className="text-note text-zinc-400 tabular-nums">{t('nutrition.diary.macros', macros(m.totals))}</span>
+                    <span className="flex items-center gap-2">
+                      <MacroLine x={m.totals} className="text-note" />
+                      {chosen !== today && (
+                        <button
+                          type="button"
+                          aria-label={t('nutrition.diary.copy')}
+                          title={t('nutrition.diary.copy')}
+                          onClick={() => void copyTo(m.entries, today).then(() => setCopied(m.meal))}
+                          className="text-zinc-500 hover:text-amber-300"
+                        >
+                          <Copy size={12} />
+                        </button>
+                      )}
+                    </span>
                   </div>
+                  {copied === m.meal && chosen !== today && <p className="text-note text-amber-300 mb-1">{t('nutrition.diary.copied')}</p>}
                   {m.entries.map((e) => (
                     <div key={e.id ?? e.food} className="flex items-start justify-between gap-3 py-0.5">
                       <div className="min-w-0">
-                        <p className="text-caption text-zinc-300">
-                          {t('nutrition.diary.item', { food: e.food, grams: e.grams === null ? 'none' : fmtNum(e.grams, 0) })}
+                        <p className="text-caption text-zinc-300 flex flex-wrap items-baseline gap-x-1.5">
+                          <span>{e.food}</span>
+                          {e.grams !== null && e.id ? (
+                            <GramsEdit grams={e.grams} onSave={(g) => setGrams(e.id!, g)} />
+                          ) : e.grams !== null ? (
+                            <span className="text-zinc-500">{t('nutrition.diary.grams', { grams: fmtNum(e.grams, 0) })}</span>
+                          ) : null}
                         </p>
-                        <p className="text-note text-zinc-500 tabular-nums">{t('nutrition.diary.macros', macros(e))}</p>
+                        <MacroLine x={e} className="block text-note" />
                       </div>
                       {e.id && (
                         <button type="button" aria-label={t('nutrition.diary.delete')} onClick={() => remove(e.id!)} className="text-zinc-600 hover:text-rose-300 mt-0.5">
@@ -134,7 +168,6 @@ export function FoodDiaryCard({ days, today, foodLog }: { days: DailyRecord[]; t
                 </div>
               ))}
               <DayTotal total={total} />
-              <Left total={total} targets={targets} />
             </>
           ) : appDay?.caloriesKcal !== undefined ? (
             <p className="text-caption text-zinc-400">
@@ -167,7 +200,7 @@ function DayTotal({ total }: { total: FoodTotals }) {
     <div className="flex items-baseline justify-between gap-3 border-t border-zinc-700 pt-2">
       <span className="text-caption font-medium text-zinc-200">{t('nutrition.diary.total')}</span>
       <span className="text-right">
-        <span className="block text-caption text-zinc-100 tabular-nums">{t('nutrition.diary.macros', macros(total))}</span>
+        <MacroLine x={total} className="block text-caption text-zinc-200" />
         <span className="block text-note text-zinc-500 tabular-nums">
           {t('nutrition.diary.extra', { sat: fmtNum(total.satFat, 1), salt: fmtNum(total.salt, 1) })}
         </span>
@@ -176,21 +209,109 @@ function DayTotal({ total }: { total: FoodTotals }) {
   );
 }
 
-function Left({ total, targets }: { total: FoodTotals; targets: ReturnType<typeof useTargets>['targets'] }) {
-  if (targets.kcal === null && targets.proteinG === null) return null;
-  const left = (target: number | null, got: number) => (target === null ? 'none' : n0(target - got));
+/** The day against the targets, a bar for energy and each macro. Neutral colours: going over is shown, not scolded. */
+function Bars({ total, targets }: { total: FoodTotals; targets: ReturnType<typeof useTargets>['targets'] }) {
+  const rows = [
+    { key: 'kcal', got: total.kcal, target: targets.kcal, color: COLOR.energy, unit: 'kcal' },
+    { key: 'protein', got: total.protein, target: targets.proteinG, color: COLOR.protein, unit: 'g' },
+    { key: 'carbs', got: total.carbs, target: targets.carbsG, color: COLOR.carbs, unit: 'g' },
+    { key: 'fat', got: total.fat, target: targets.fatG, color: COLOR.fat, unit: 'g' },
+  ] as const;
+  if (rows.every((r) => r.target === null)) return null;
   return (
-    <div className="flex items-baseline justify-between gap-3 pt-1.5">
-      <span className="text-caption text-zinc-500">{t('nutrition.diary.left')}</span>
-      <span className="text-caption text-zinc-300 tabular-nums text-right">
-        {t('nutrition.diary.leftValue', {
-          kcal: left(targets.kcal, total.kcal),
-          p: left(targets.proteinG, total.protein),
-          c: left(targets.carbsG, total.carbs),
-          f: left(targets.fatG, total.fat),
-        })}
-      </span>
+    <div className="grid grid-cols-2 gap-x-4 gap-y-2.5 mb-4">
+      {rows.map((r) => {
+        if (r.target === null) return null;
+        const left = r.target - r.got;
+        const pct = Math.min(100, (100 * r.got) / r.target);
+        return (
+          <div key={r.key}>
+            <div className="flex items-baseline justify-between gap-2">
+              <span className="text-note font-medium" style={{ color: r.color }}>
+                {t('nutrition.diary.bar', { what: r.key })}
+              </span>
+              <span className="text-note text-zinc-400 tabular-nums">
+                {t('nutrition.diary.of', { got: n0(r.got), target: n0(r.target), unit: r.unit })}
+              </span>
+            </div>
+            <div className="h-1.5 rounded-full bg-zinc-800 mt-1 overflow-hidden">
+              <div className="h-full rounded-full" style={{ width: `${pct}%`, background: r.color, opacity: left < 0 ? 0.6 : 1 }} />
+            </div>
+            <p className="text-note text-zinc-300 tabular-nums mt-0.5">
+              {t('nutrition.diary.leftOver', { over: left < 0 ? 'yes' : 'no', amount: n0(Math.abs(left)), unit: r.unit })}
+            </p>
+          </div>
+        );
+      })}
     </div>
+  );
+}
+
+/** kcal, then protein, carbs and fat in their colours. */
+function MacroLine({ x, className = '' }: { x: { kcal: number; protein: number; carbs: number; fat: number }; className?: string }) {
+  return (
+    <span className={`tabular-nums text-zinc-400 ${className}`}>
+      {rich('nutrition.diary.macroLine', {
+        ...macros(x),
+        p: (w) => <span style={{ color: COLOR.protein }}>{w}</span>,
+        c: (w) => <span style={{ color: COLOR.carbs }}>{w}</span>,
+        f: (w) => <span style={{ color: COLOR.fat }}>{w}</span>,
+        pv: n0(x.protein),
+        cv: n0(x.carbs),
+        fv: n0(x.fat),
+      })}
+    </span>
+  );
+}
+
+/** The weight, tapped to change it; Enter or leaving the field saves, Escape cancels. */
+function GramsEdit({ grams, onSave }: { grams: number; onSave: (g: number) => Promise<void> }) {
+  const [editing, setEditing] = useState(false);
+  const [value, setValue] = useState(String(grams));
+  const [failed, setFailed] = useState(false);
+  const save = async () => {
+    setEditing(false);
+    const g = Number(value.replace(',', '.'));
+    if (!Number.isFinite(g) || g <= 0 || g === grams) return;
+    try {
+      setFailed(false);
+      await onSave(g);
+    } catch {
+      setFailed(true);
+    }
+  };
+  if (!editing) {
+    return (
+      <button
+        type="button"
+        aria-label={t('nutrition.diary.editGrams')}
+        onClick={() => {
+          setValue(String(grams));
+          setEditing(true);
+        }}
+        className={`tabular-nums underline decoration-dotted underline-offset-2 ${failed ? 'text-rose-300' : 'text-zinc-400 hover:text-zinc-100'}`}
+      >
+        {t('nutrition.diary.grams', { grams: fmtNum(grams, 0) })}
+      </button>
+    );
+  }
+  return (
+    <span className="inline-flex items-baseline gap-1">
+      <input
+        autoFocus
+        inputMode="decimal"
+        aria-label={t('nutrition.diary.editGrams')}
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        onBlur={save}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') void save();
+          if (e.key === 'Escape') setEditing(false);
+        }}
+        className="w-16 rounded bg-zinc-900 border border-amber-400/60 px-1 py-0 text-caption text-zinc-100 tabular-nums"
+      />
+      <span className="text-zinc-500">{t('nutrition.diary.gramUnit')}</span>
+    </span>
   );
 }
 

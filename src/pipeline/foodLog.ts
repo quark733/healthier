@@ -100,6 +100,23 @@ export function parseFoodImport(text: string): { entries: FoodEntry[]; unread: s
   return { entries, unread };
 }
 
+/** The entry at a new weight, every number scaled with it. Null without a weight to scale from. */
+export function scaleEntry(e: FoodEntry, grams: number): FoodEntry | null {
+  if (e.grams === null || e.grams <= 0 || !Number.isFinite(grams) || grams <= 0 || grams > 10_000) return null;
+  const k = grams / e.grams;
+  const r = (v: number) => Math.round(v * k * 10) / 10;
+  return {
+    ...e,
+    grams: Math.round(grams * 10) / 10,
+    kcal: r(e.kcal),
+    protein: r(e.protein),
+    carbs: r(e.carbs),
+    fat: r(e.fat),
+    satFat: e.satFat === null ? null : r(e.satFat),
+    salt: e.salt === null ? null : Math.round(e.salt * k * 100) / 100,
+  };
+}
+
 export function totalsOf(entries: FoodEntry[]): FoodTotals {
   const t: FoodTotals = { kcal: 0, protein: 0, carbs: 0, fat: 0, satFat: 0, salt: 0, items: 0 };
   for (const e of entries) {

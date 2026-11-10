@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { api } from '../lib/api';
 import { addDays, type CivilDate } from '../lib/date';
-import { parseFoodImport, type FoodEntry } from '../pipeline/foodLog';
+import { parseFoodImport, scaleEntry, type FoodEntry } from '../pipeline/foodLog';
 
 /** The demo person's diary: yesterday and today so far. Made up. */
 function demoDiary(today: CivilDate): FoodEntry[] {
@@ -59,7 +59,44 @@ export function useFoodLog(demo: boolean, today: CivilDate | null) {
     [demo],
   );
 
-  return { entries, importText, remove };
+  /** A new weight for an entry: its numbers scale with it, at once, and are saved. */
+  const setGrams = useCallback(
+    async (id: string, grams: number) => {
+      let before: FoodEntry | undefined;
+      setEntries((l) =>
+        l.map((e) => {
+          if (e.id !== id) return e;
+          before = e;
+          return scaleEntry(e, grams) ?? e;
+        }),
+      );
+      if (demo) return;
+      try {
+        const r = await api<{ entry: FoodEntry }>(`/api/food-log/${id}`, { method: 'PATCH', body: { grams } });
+        setEntries((l) => l.map((e) => (e.id === id ? r.entry : e)));
+      } catch (err) {
+        if (before) setEntries((l) => l.map((e) => (e.id === id ? before! : e)));
+        throw err;
+      }
+    },
+    [demo],
+  );
+
+  /** These entries again on another day (a meal eaten again). */
+  const copyTo = useCallback(
+    async (list: FoodEntry[], date: CivilDate) => {
+      const copies = list.map(({ id: _id, ...e }) => ({ ...e, date }));
+      if (demo) {
+        setEntries((l) => [...l, ...copies.map((e, i) => ({ ...e, id: `demo-${Date.now()}-${i}` }))]);
+        return;
+      }
+      const r = await api<{ entries: FoodEntry[] }>('/api/food-log', { method: 'POST', body: { entries: copies } });
+      setEntries((l) => [...l, ...r.entries]);
+    },
+    [demo],
+  );
+
+  return { entries, importText, remove, setGrams, copyTo };
 }
 
 export type FoodLog = ReturnType<typeof useFoodLog>;

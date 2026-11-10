@@ -52,6 +52,21 @@ export async function clearFoodDays(db: Db, userId: string, dates: string[]): Pr
   await db.query('DELETE FROM user_food_log WHERE user_id = $1 AND date = ANY($2::date[])', [userId, dates]);
 }
 
+export async function getFoodEntry(db: Db, userId: string, id: string): Promise<FoodEntry | null> {
+  if (!/^\d+$/.test(id)) return null;
+  const { rows } = await db.query<Row>(`SELECT ${COLUMNS} FROM user_food_log WHERE user_id = $1 AND id = $2`, [userId, id]);
+  return rows[0] ? toEntry(rows[0]) : null;
+}
+
+/** Writes an entry's amounts back (after a change of weight). */
+export async function updateFoodAmounts(db: Db, userId: string, e: FoodEntry): Promise<void> {
+  await db.query(
+    `UPDATE user_food_log SET grams = $3, kcal = $4, protein = $5, carbs = $6, fat = $7, sat_fat = $8, salt = $9
+     WHERE user_id = $1 AND id = $2`,
+    [userId, e.id, e.grams, e.kcal, e.protein, e.carbs, e.fat, e.satFat, e.salt],
+  );
+}
+
 export async function deleteFoodEntry(db: Db, userId: string, id: string): Promise<boolean> {
   if (!/^\d+$/.test(id)) return false;
   const r = await db.query('DELETE FROM user_food_log WHERE user_id = $1 AND id = $2', [userId, id]);

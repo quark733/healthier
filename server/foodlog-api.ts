@@ -1,8 +1,8 @@
 import { Router } from 'express';
-import { parseFoodImport, readFoodEntry } from '../src/pipeline/foodLog';
+import { parseFoodImport, readFoodEntry, scaleEntry, type FoodEntry } from '../src/pipeline/foodLog';
 import { requireUser } from './auth';
 import { asyncHandler, type Deps } from './http';
-import { addFoodEntries, clearFoodDays, deleteFoodEntry, getFoodEntries } from './foodlog-repo';
+import { addFoodEntries, clearFoodDays, deleteFoodEntry, getFoodEntries, getFoodEntry, updateFoodAmounts } from './foodlog-repo';
 
 /** The food diary from the Nutrition page: read, pasted in by the day, an entry added or deleted. */
 export function foodLogApiRoutes(deps: Deps): Router {
@@ -34,16 +34,33 @@ export function foodLogApiRoutes(deps: Deps): Router {
     }),
   );
 
+  /** One entry, or several (`entries`, e.g. a meal copied to another day). */
   router.post(
     '/food-log',
     asyncHandler(async (req, res) => {
-      const e = readFoodEntry(req.body?.entry);
-      if (!e) {
+      const raw: unknown[] = Array.isArray(req.body?.entries) ? req.body.entries.slice(0, 80) : [req.body?.entry];
+      const read = raw.map(readFoodEntry);
+      if (!read.length || read.some((e) => e === null)) {
         res.status(400).json({ error: 'invalid_entry' });
         return;
       }
-      const [saved] = await addFoodEntries(deps.db, res.locals.userId, [e]);
-      res.json({ entry: saved });
+      const saved = await addFoodEntries(deps.db, res.locals.userId, read.map((e) => ({ ...e!, id: undefined })) as FoodEntry[]);
+      res.json({ entry: saved[0], entries: saved });
+    }),
+  );
+
+  /** A new weight for an entry; its kcal and macros scale with it. */
+  router.patch(
+    '/food-log/:id',
+    asyncHandler(async (req, res) => {
+      const e = await getFoodEntry(deps.db, res.locals.userId, String(req.params.id));
+      const scaled = e ? scaleEntry(e, Number(req.body?.grams)) : null;
+      if (!scaled) {
+        res.status(e ? 400 : 404).json({ error: e ? 'invalid_grams' : 'not_found' });
+        return;
+      }
+      await updateFoodAmounts(deps.db, res.locals.userId, scaled);
+      res.json({ entry: scaled });
     }),
   );
 
