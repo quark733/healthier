@@ -1,4 +1,6 @@
 import { addDays, todayCivilIn, type CivilDate } from '../src/lib/date';
+import { applyFoodLog } from '../src/pipeline/foodLog';
+import { getFoodEntries } from './foodlog-repo';
 import {
   assembleDataset,
   assembleDays,
@@ -458,6 +460,8 @@ export async function loadDataset(
     from,
     to,
   );
+  // Days in the food diary take their food from it instead of a diary app's (pipeline/foodLog.ts).
+  dataset.days = applyFoodLog(dataset.days, await getFoodEntries(deps.db, userId, from, to));
   dataset.meta.fromCache = true;
   dataset.meta.cacheAgeMs = Date.now() - state.lastSyncAt.getTime();
   if (Object.keys(queries).length) dataset.answers = await answerHistory(deps, userId, queries, from, to, choice);
@@ -507,7 +511,8 @@ export async function loadHistory(deps: Deps, userId: string): Promise<DailyReco
   const limit = historyStart(to, deps.config.historyDays, DASHBOARD_WINDOW_DAYS);
   const oldest = await getOldestStreamDay(deps.db, userId);
   const from = oldest && oldest > limit ? oldest : limit;
-  return assembleHistory(await getStreamDays(deps.db, userId, from, to), from, to, await sourceChoice(deps, userId, user.sources));
+  const days = assembleHistory(await getStreamDays(deps.db, userId, from, to), from, to, await sourceChoice(deps, userId, user.sources));
+  return applyFoodLog(days, await getFoodEntries(deps.db, userId, from, to));
 }
 
 /** A usable access token, refreshed and persisted when the cached one is near expiry. */

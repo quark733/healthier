@@ -261,6 +261,40 @@ const MIGRATIONS: { id: number; name: string; sql: string }[] = [
       );
     `,
   },
+  {
+    id: 15,
+    name: 'food diary',
+    sql: `
+      -- What was eaten, item by item (FoodEntry in src/pipeline/foodLog.ts), written by Claude or
+      -- pasted on the Nutrition page. A day with rows here is that day's food.
+      CREATE TABLE user_food_log (
+        id         bigserial PRIMARY KEY,
+        user_id    uuid NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+        date       date NOT NULL,
+        meal       text NOT NULL,
+        food       text NOT NULL,
+        grams      double precision,
+        kcal       double precision NOT NULL,
+        protein    double precision NOT NULL,
+        carbs      double precision NOT NULL,
+        fat        double precision NOT NULL,
+        sat_fat    double precision,
+        salt       double precision,
+        created_at timestamptz NOT NULL DEFAULT now()
+      );
+      CREATE INDEX user_food_log_user_date ON user_food_log (user_id, date);
+    `,
+  },
+  {
+    id: 16,
+    name: 'write keys for Claude',
+    sql: `
+      -- A second key, kept apart from the read key, that also lets Claude write the food diary.
+      ALTER TABLE mcp_keys ADD COLUMN scope text NOT NULL DEFAULT 'read';
+      ALTER TABLE mcp_keys DROP CONSTRAINT mcp_keys_pkey;
+      ALTER TABLE mcp_keys ADD PRIMARY KEY (user_id, scope);
+    `,
+  },
 ];
 
 export function createDb(connectionString: string): Db {

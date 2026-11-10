@@ -13,6 +13,8 @@ import { readLogEntry, type LogEntry } from '../src/pipeline/healthLog';
 import { recentLoad, sessionSets, sessionVolume, type StrengthSession } from '../src/pipeline/strength';
 import { setsPerMuscle } from '../src/pipeline/muscles';
 import { getStrengthSessions } from './strength-repo';
+import { addFoodEntries, clearFoodDays, deleteFoodEntry, getFoodEntries } from './foodlog-repo';
+import { byDate, MEALS, readFoodEntry, totalsOf, type FoodEntry } from '../src/pipeline/foodLog';
 import { getSyncState, getUser } from './repo';
 import { loadHistory } from './sync';
 import { randomToken, sha256 } from './crypto';
@@ -20,19 +22,27 @@ import { requireUser } from './auth';
 import { asyncHandler, type Deps } from './http';
 
 /**
- * A read-only MCP server over the person's own data, so Claude can answer questions from their
- * real numbers. Reached at /mcp/<read key>: the key is made on the Settings page, shown once,
- * stored only as a hash, and can be replaced or turned off there. It reads; it can't change or
- * delete anything. Every call reads the stored data afresh; nothing is cached or logged.
+ * An MCP server over the person's own data, so Claude can answer questions from their real
+ * numbers. Reached at /mcp/<key>: keys are made on the Settings page, shown once, stored only as
+ * a hash, and can be replaced or turned off there. A read key (hcr_) reads and can't change
+ * anything. A write key (hcw_) reads too, and can also write the food diary: add, replace and
+ * delete entries, nothing else. Every call reads the stored data afresh; nothing is cached.
  */
 
 const MAX_DAYS = 400;
 
-async function userForReadKey(deps: Deps, key: string): Promise<string | null> {
-  if (!/^hcr_[A-Za-z0-9_-]{20,}$/.test(key)) return null;
-  const { rows } = await deps.db.query<{ user_id: string }>('SELECT user_id FROM mcp_keys WHERE key_hash = $1', [sha256(key)]);
-  return rows[0]?.user_id ?? null;
+type Scope = 'read' | 'write';
+const PREFIX: Record<Scope, string> = { read: 'hcr_', write: 'hcw_' };
+
+async function userForKey(deps: Deps, key: string): Promise<{ userId: string; scope: Scope } | null> {
+  const m = /^(hcr|hcw)_[A-Za-z0-9_-]{20,}$/.exec(key);
+  if (!m) return null;
+  const scope: Scope = m[1] === 'hcw' ? 'write' : 'read';
+  const { rows } = await deps.db.query<{ user_id: string }>('SELECT user_id FROM mcp_keys WHERE key_hash = $1 AND scope = $2', [sha256(key), scope]);
+  return rows[0] ? { userId: rows[0].user_id, scope } : null;
 }
+
+const readScope = (v: unknown): Scope => (v === 'write' ? 'write' : 'read');
 
 const round = (v: number | null | undefined, d = 1) => (v === null || v === undefined ? null : Math.round(v * 10 ** d) / 10 ** d);
 
@@ -79,7 +89,7 @@ function sessionDigest(s: StrengthSession) {
 
 const text = (data: unknown) => ({ content: [{ type: 'text' as const, text: JSON.stringify(data) }] });
 
-function buildServer(deps: Deps, userId: string): McpServer {
+function buildServer(deps: Deps, userId: string, scope: Scope): McpServer {
   const server = new McpServer({ name: 'healthcheck', version: '1.0.0' });
   const range = { from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).describe('First day, YYYY-MM-DD'), to: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).describe('Last day, YYYY-MM-DD') };
 
@@ -176,8 +186,84 @@ function buildServer(deps: Deps, userId: string): McpServer {
     },
   );
 
+  server.registerTool(
+    'get_food_log',
+    {
+      description:
+        "The food diary in a range, item by item: meal, food, grams, kcal, protein, carbs, fat, saturated fat and salt, with each day's totals. Days in the diary are the day's food; other days' food came from a diary app through Google Health (see get_days).",
+      inputSchema: range,
+    },
+    async ({ from, to }) => {
+      const entries = await getFoodEntries(deps.db, userId, from, to);
+      return text([...byDate(entries)].map(([date, list]) => ({ date, totals: roundTotals(totalsOf(list)), entries: list })));
+    },
+  );
+
+  if (scope === 'write') {
+    const item = z.object({
+      food: z.string().min(1).max(120).describe('What it was, with the brand when known, e.g. "Fiber Havregryn (Axa)"'),
+      grams: z.number().min(0).max(10000).nullable().optional().describe('Amount eaten in grams, when weighed or known'),
+      kcal: z.number().min(0).max(10000),
+      protein: z.number().min(0).max(1000).describe('grams'),
+      carbs: z.number().min(0).max(2000).describe('grams'),
+      fat: z.number().min(0).max(1000).describe('grams'),
+      satFat: z.number().min(0).max(1000).nullable().optional().describe('grams of saturated fat, when known'),
+      salt: z.number().min(0).max(200).nullable().optional().describe('grams of salt, when known'),
+    });
+    const meal = z.enum(MEALS).describe('breakfast, meal2 (the meal before training), lunch, dinner, evening (evening snack) or snack');
+
+    server.registerTool(
+      'log_meal',
+      {
+        description:
+          "Write food the person ate to their food diary. Work out each item's numbers from what they ate: use the per-100 g values in their food library (the project doc claude/matbibliotek.md, or values they gave from a package or MyFitnessPal) times the grams; estimate only what isn't there and say so. One call per meal; items are added to what the meal already has. Returns the day's totals after the write.",
+        inputSchema: { date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().describe("Day eaten, YYYY-MM-DD; today if left out"), meal, items: z.array(item).min(1).max(40) },
+      },
+      async ({ date, meal: m, items }) => {
+        const { today } = await context();
+        const day = (date ?? today) as CivilDate;
+        const entries = items
+          .map((i) => readFoodEntry({ ...i, date: day, meal: m }))
+          .filter((e): e is FoodEntry => e !== null);
+        const saved = await addFoodEntries(deps.db, userId, entries);
+        const all = await getFoodEntries(deps.db, userId, day, day);
+        return text({ saved: saved.map((e) => ({ id: e.id, food: e.food })), date: day, dayTotals: roundTotals(totalsOf(all)) });
+      },
+    );
+
+    server.registerTool(
+      'replace_food_day',
+      {
+        description: "Replace a whole day of the food diary with these entries (to correct a day, e.g. against a MyFitnessPal screenshot). Everything the day had is removed first.",
+        inputSchema: { date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), entries: z.array(item.extend({ meal })).min(1).max(80) },
+      },
+      async ({ date, entries }) => {
+        const read = entries.map((e) => readFoodEntry({ ...e, date })).filter((e): e is FoodEntry => e !== null);
+        await clearFoodDays(deps.db, userId, [date]);
+        await addFoodEntries(deps.db, userId, read);
+        return text({ date, saved: read.length, dayTotals: roundTotals(totalsOf(read)) });
+      },
+    );
+
+    server.registerTool(
+      'delete_food_entry',
+      { description: 'Delete one food diary entry by its id (from get_food_log or log_meal).', inputSchema: { id: z.string().regex(/^\d+$/) } },
+      async ({ id }) => text({ deleted: await deleteFoodEntry(deps.db, userId, id) }),
+    );
+  }
+
   return server;
 }
+
+const roundTotals = (t: ReturnType<typeof totalsOf>) => ({
+  kcal: Math.round(t.kcal),
+  protein: Math.round(t.protein),
+  carbs: Math.round(t.carbs),
+  fat: Math.round(t.fat),
+  satFat: Math.round(t.satFat * 10) / 10,
+  salt: Math.round(t.salt * 10) / 10,
+  items: t.items,
+});
 
 async function labResults(deps: Deps, userId: string) {
   const user = await getUser(deps.db, userId);
@@ -216,13 +302,13 @@ export function mcpRoutes(deps: Deps): Router {
   router.post(
     '/mcp/:key',
     asyncHandler(async (req: Request, res: Response) => {
-      const userId = await userForReadKey(deps, String(req.params.key));
-      if (!userId) {
+      const found = await userForKey(deps, String(req.params.key));
+      if (!found) {
         res.status(401).json({ jsonrpc: '2.0', error: { code: -32001, message: 'Unknown or revoked key' }, id: null });
         return;
       }
       // Stateless: a fresh server and transport for each request, nothing kept between them.
-      const server = buildServer(deps, userId);
+      const server = buildServer(deps, found.userId, found.scope);
       const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined, enableJsonResponse: true });
       res.on('close', () => {
         transport.close();
@@ -237,31 +323,34 @@ export function mcpRoutes(deps: Deps): Router {
     res.status(405).set('Allow', 'POST').json({ jsonrpc: '2.0', error: { code: -32000, message: 'Method not allowed' }, id: null });
   });
 
-  // The key, from the Settings page (signed in).
+  // The keys, from the Settings page (signed in). ?scope=write for the write key; read otherwise.
   router.use('/api/mcp-key', requireUser(deps));
   router.get(
     '/api/mcp-key',
     asyncHandler(async (_req, res) => {
-      const { rows } = await deps.db.query<{ created_at: Date }>('SELECT created_at FROM mcp_keys WHERE user_id = $1', [res.locals.userId]);
-      res.json({ hasKey: rows.length > 0, createdAt: rows[0]?.created_at ?? null });
+      const { rows } = await deps.db.query<{ scope: string; created_at: Date }>('SELECT scope, created_at FROM mcp_keys WHERE user_id = $1', [res.locals.userId]);
+      const of = (s: Scope) => rows.find((r) => r.scope === s)?.created_at ?? null;
+      // hasKey/createdAt: the read key, as before.
+      res.json({ hasKey: of('read') !== null, createdAt: of('read'), write: { hasKey: of('write') !== null, createdAt: of('write') } });
     }),
   );
   router.post(
     '/api/mcp-key',
-    asyncHandler(async (_req, res) => {
-      const key = `hcr_${randomToken(32)}`;
+    asyncHandler(async (req, res) => {
+      const scope = readScope(req.query.scope);
+      const key = `${PREFIX[scope]}${randomToken(32)}`;
       await deps.db.query(
-        `INSERT INTO mcp_keys (user_id, key_hash) VALUES ($1, $2)
-         ON CONFLICT (user_id) DO UPDATE SET key_hash = EXCLUDED.key_hash, created_at = now()`,
-        [res.locals.userId, sha256(key)],
+        `INSERT INTO mcp_keys (user_id, key_hash, scope) VALUES ($1, $2, $3)
+         ON CONFLICT (user_id, scope) DO UPDATE SET key_hash = EXCLUDED.key_hash, created_at = now()`,
+        [res.locals.userId, sha256(key), scope],
       );
       res.json({ key });
     }),
   );
   router.delete(
     '/api/mcp-key',
-    asyncHandler(async (_req, res) => {
-      await deps.db.query('DELETE FROM mcp_keys WHERE user_id = $1', [res.locals.userId]);
+    asyncHandler(async (req, res) => {
+      await deps.db.query('DELETE FROM mcp_keys WHERE user_id = $1 AND scope = $2', [res.locals.userId, readScope(req.query.scope)]);
       res.json({ ok: true });
     }),
   );

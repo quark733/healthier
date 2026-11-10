@@ -2114,6 +2114,29 @@
       "labels": "Typical values per portion; the product's own label is the one to log.",
       "done": "Today's targets are met, or there's too little energy left for a portion."
     },
+    "diary": {
+      "title": "Food diary",
+      "hint": "What you ate, meal by meal. Tell Claude what you're eating and it writes it here, using your food library's numbers; you can also paste lines below. A day in the diary is that day's food: whatever a diary app like MyFitnessPal sent for it is set aside, so nothing counts twice. Days without diary entries keep the app's numbers, so your history and the burn estimate carry on.",
+      "prev": "Previous month",
+      "next": "Next month",
+      "legend": "Amber: from the diary. Grey: from a diary app.",
+      "meal": "{meal, select, breakfast {Breakfast} meal2 {Meal 2} lunch {Lunch} dinner {Dinner} evening {Evening} other {Snack}}",
+      "macros": "{kcal} kcal · P {p} · C {c} · F {f}",
+      "item": "{food}{grams, select, none {} other { · {grams} g}}",
+      "delete": "Delete",
+      "total": "Day total",
+      "extra": "Saturated fat {sat} g · salt {salt} g",
+      "left": "Left of your targets",
+      "leftValue": "{kcal} kcal · P {p} · C {c} · F {f}",
+      "fromApp": "Not in the diary. A diary app sent {kcal} kcal for this day (P {p} · C {c} · F {f} g).",
+      "empty": "Nothing logged this day.",
+      "claude": "Claude writes here when you tell it what you ate, through the write address under Settings → Claude access.",
+      "paste": "{open, select, yes {Close} other {Paste food}}",
+      "pasteHint": "One food a line: date; meal; food; grams; kcal; protein; carbs; fat; saturated fat; salt. Meal is breakfast, meal 2, lunch, dinner, evening or snack (Swedish names work too). A day you paste replaces what that day had.",
+      "save": "Save",
+      "saved": "{n, plural, one {# food saved} other {# foods saved}}{unread, plural, =0 {.} one {; # line couldn't be read.} other {; # lines couldn't be read.}}",
+      "failed": "Nothing could be read. Check that each line has the date first and ten parts."
+    },
     "foods": {
       "quark": "Quark, {grams} g",
       "skyr": "Skyr, {grams} g",
@@ -2868,7 +2891,7 @@
   "data": {
     "claude": {
       "title": "Claude access",
-      "hint": "Lets Claude read your data, so you can ask about your real numbers in a chat: your week, your weight trend, your training, your blood tests. Read-only: it can't change or delete anything. Your data goes to Anthropic when Claude reads it. Turn it off here at any time.",
+      "hint": "Lets Claude read your data, so you can ask about your real numbers in a chat: your week, your weight trend, your training, your blood tests. The read address can't change anything. The write address can also write your food diary, and nothing else. Your data goes to Anthropic when Claude reads it. Turn either off here at any time.",
       "demo": "Demo mode: sign in to give Claude access to your own data.",
       "on": "On since {date}. The address was shown once when it was made; make a new one if you've lost it.",
       "off": "Off. Make an address to connect Claude.",
@@ -2878,7 +2901,10 @@
       "step2": "Name it HealthCheck and paste the address as the URL. No sign-in is needed.",
       "step3": "In a chat, turn the connector on and ask, for example, how your week went.",
       "make": "{has, select, yes {Replace address} other {Make an address}}",
-      "revoke": "Turn off"
+      "revoke": "Turn off",
+      "readTitle": "Read address",
+      "writeTitle": "Write address (food diary)",
+      "writeHint": "Lets Claude write what you eat into the food diary when you tell it. Use it in the connector instead of the read address: it reads everything the read address does, too."
     },
     "sources": {
       "title": "Devices and sources",

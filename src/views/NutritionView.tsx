@@ -18,6 +18,8 @@ import type { Targets } from '../pipeline/targets';
 import { TargetsCard } from './TargetsCard';
 import { ExpenditureCard } from './ExpenditureCard';
 import { FoodLine, remainingOf } from './WellbeingCards';
+import { FoodDiaryCard } from './FoodDiaryCard';
+import type { FoodLog } from '../hooks/useFoodLog';
 
 /**
  * Food logged in a diary app (MyFitnessPal and the like), as it reaches Google Health: energy,
@@ -65,7 +67,7 @@ const latestWeight = (days: DailyRecord[]) => [...days].reverse().find((d) => d.
 
 type NutritionChart = 'energy' | 'protein' | 'macros' | 'balance';
 
-export function NutritionView({ data }: { data: SyncResult }) {
+export function NutritionView({ data, foodLog }: { data: SyncResult; foodLog: FoodLog }) {
   const days = data.days;
   const spanState = useSpan(data, '30');
   const { days: window, bucket } = spanState;
@@ -100,6 +102,7 @@ export function NutritionView({ data }: { data: SyncResult }) {
         <Card>
           <EmptyState title={t('nutrition.empty.title')} detail={t('nutrition.empty.detail')} />
         </Card>
+        {today && <FoodDiaryCard days={days} today={today} foodLog={foodLog} />}
         <TargetsCard />
       </div>
     );
@@ -249,6 +252,7 @@ export function NutritionView({ data }: { data: SyncResult }) {
       </div>
 
       <RestOfDay day={days.at(-1)} targets={targets} />
+      {today && <FoodDiaryCard days={days} today={today} foodLog={foodLog} />}
       <ExpenditureCard days={days} today={days.at(-1)!.date} />
 
       <div className="flex items-center justify-between px-1">

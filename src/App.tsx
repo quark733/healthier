@@ -9,6 +9,8 @@ import { GoalsProvider } from './hooks/useGoals';
 import { TargetsProvider } from './hooks/useTargets';
 import { CheckinsProvider } from './hooks/useCheckins';
 import { MeasurementsProvider } from './hooks/useMeasurements';
+import { useFoodLog } from './hooks/useFoodLog';
+import { applyFoodLog } from './pipeline/foodLog';
 import { CycleProvider, useCycleTracking } from './hooks/useCycle';
 import { ThemeProvider } from './hooks/useTheme';
 import { CycleView } from './views/CycleView';
@@ -118,6 +120,13 @@ export default function App() {
   };
   // The data's last day: yours on live data, the fixture's in demo mode.
   const today = health.data?.days.at(-1)?.date ?? null;
+  // The food diary over the days, so a meal pasted or deleted shows at once (the server does the
+  // same when it sends the days).
+  const foodLog = useFoodLog(demo, today);
+  const fed = useMemo(
+    () => (health.data && foodLog.entries.length ? { ...health.data, days: applyFoodLog(health.data.days, foodLog.entries) } : health.data),
+    [health.data, foodLog.entries],
+  );
 
   useEffect(() => {
     if (user || demo) {
@@ -247,12 +256,12 @@ export default function App() {
           <MeasurementsProvider demo={demo} today={today}>
           <HistoryProvider data={health.data} info={health.history} live={!demo} local={health.localHistory}>
           <main className="mt-3 md:mt-6 animate-in fade-in duration-500">
-            {view === 'today' && <TodayView data={health.data} gender={gender} intraday={intradayDays} clock={demo ? DEMO_CLOCK : undefined} demo={demo} />}
+            {view === 'today' && <TodayView data={fed!} gender={gender} intraday={intradayDays} clock={demo ? DEMO_CLOCK : undefined} demo={demo} />}
             {view === 'activity' && <ActivityView data={health.data} intraday={intradayDays} clock={demo ? DEMO_CLOCK : undefined} />}
             {view === 'sleep' && <SleepView data={health.data} intraday={intradayDays} clock={demo ? DEMO_CLOCK : undefined} />}
             {view === 'vitals' && <VitalsView data={health.data} intraday={intradayDays} clock={demo ? DEMO_CLOCK : undefined} />}
             {view === 'body' && <BodyView data={health.data} gender={gender} onGender={chooseGender} intraday={intradayDays} clock={demo ? DEMO_CLOCK : undefined} />}
-            {view === 'nutrition' && <NutritionView data={health.data} />}
+            {view === 'nutrition' && <NutritionView data={fed!} foodLog={foodLog} />}
             {view === 'training' && today && <TrainingView demo={demo} today={today} notice={strengthNotice} days={health.data?.days} />}
             {view === 'blood' && today && <BloodView demo={demo} today={today} gender={gender} />}
             {view === 'cycle' && <CycleView data={health.data} intraday={intradayDays} clock={demo ? DEMO_CLOCK : undefined} />}
