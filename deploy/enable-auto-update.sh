@@ -1,10 +1,12 @@
 #!/bin/bash
-# Slår på nattlig automatisk uppdatering av HealthCheck. Kör en gång på servern:
+# Slår på automatisk uppdatering av HealthCheck. Kör en gång på servern:
 #   bash /opt/healthier/src/deploy/enable-auto-update.sh
 #
-# Varje natt kl. 04.30 (svensk tid) kollar servern om forken har ny kod. Finns det ny kod byggs
-# appen och startas om. Om bygget misslyckas fortsätter den gamla versionen att köra, och servern
-# försöker igen nästa natt. Logg: journalctl -u healthier-update
+# Var tionde minut kollar servern om forken har ny kod. Finns det ny kod byggs appen och startas
+# om (en kort paus på någon minut). Om bygget misslyckas fortsätter den gamla versionen att köra,
+# och servern försöker igen vid nästa koll. Efter varje uppdatering körs det här skriptet igen
+# från den nya koden, så ändringar i själva uppdateringen rullar också ut av sig själva.
+# Logg: journalctl -u healthier-update
 # Stäng av:  systemctl disable --now healthier-update.timer
 set -euo pipefail
 cd /opt/healthier
@@ -24,11 +26,13 @@ if [ "$latest" = "$running" ]; then
 fi
 bash /opt/healthier/update.sh
 echo "$latest" > .deployed
+# Uppdateringen själv kan ha ändrats: installera om den från den nya koden.
+bash /opt/healthier/src/deploy/enable-auto-update.sh >/dev/null
 SH
 chmod 700 auto-update.sh
 
-# Det som körs nu räknas som utrullat, så första natten bygger bara om det finns något nytt.
-git -C src rev-parse HEAD > .deployed
+# Det som körs nu räknas som utrullat, så första kollen bygger bara om det finns något nytt.
+[ -s .deployed ] || git -C src rev-parse HEAD > .deployed
 
 cat > /etc/systemd/system/healthier-update.service <<'UNIT'
 [Unit]
@@ -43,12 +47,11 @@ UNIT
 
 cat > /etc/systemd/system/healthier-update.timer <<'UNIT'
 [Unit]
-Description=HealthCheck: nattlig uppdatering
+Description=HealthCheck: kolla efter ny version var tionde minut
 
 [Timer]
-OnCalendar=*-*-* 04:30:00 Europe/Stockholm
-Persistent=true
-RandomizedDelaySec=10min
+OnCalendar=*:0/10
+RandomizedDelaySec=1min
 
 [Install]
 WantedBy=timers.target
