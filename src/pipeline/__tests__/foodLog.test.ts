@@ -64,3 +64,26 @@ test('a diary day replaces the diary app’s food; other days keep theirs', () =
   assert.equal(c.caloriesKcal, 118);
   assert.ok(c.present.includes('nutrition-log'));
 });
+
+test('a saved meal is read, logged on a day, and scaled by portion', async () => {
+  const { readSavedMeal, savedMealEntries } = await import('../foodLog');
+  const m = readSavedMeal({ name: ' Box L ', meal: 'lunch', items: [{ food: 'Rice', grams: 100, kcal: 130, protein: 3, carbs: 28, fat: 0.3, satFat: null, salt: 0 }] });
+  assert.ok(m);
+  assert.equal(m!.name, 'Box L');
+  const [e] = savedMealEntries(m!, '2026-01-05' as CivilDate, 1.5);
+  assert.equal(e.date, '2026-01-05');
+  assert.equal(e.meal, 'lunch');
+  assert.equal(e.grams, 150);
+  assert.equal(e.kcal, 195);
+  assert.equal(e.satFat, null);
+  assert.equal(readSavedMeal({ name: 'X', meal: 'lunch', items: [] }), null);
+  assert.equal(readSavedMeal({ name: 'X', meal: 'lunch', items: [{ food: 'Y', kcal: 1 }] }), null);
+});
+
+test('the week average counts only the logged days among the last seven', async () => {
+  const { weekAverage } = await import('../foodLog');
+  const day = (date: string, kcal: number | null, protein: number | null) => ({ ...emptyRecord(date as CivilDate), caloriesKcal: kcal, proteinG: protein });
+  const days = [day('2026-01-01', 9000, 900), day('2026-01-03', 3000, 200), day('2026-01-05', null, null), day('2026-01-08', 2000, 100)];
+  assert.deepEqual(weekAverage(days, '2026-01-08' as CivilDate), { kcal: 2500, protein: 150, days: 2 });
+  assert.equal(weekAverage(days, '2025-12-01' as CivilDate), null);
+});

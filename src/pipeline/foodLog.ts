@@ -171,3 +171,56 @@ export function applyFoodLog(days: DailyRecord[], entries: FoodEntry[]): DailyRe
     };
   });
 }
+
+/**
+ * A meal eaten again and again (a breakfast, a prepped lunch box), saved once and logged with one
+ * tap or one word to Claude. Items keep their weights and numbers; `portion` scales them all.
+ */
+export interface SavedMeal {
+  id?: string;
+  name: string;
+  meal: Meal;
+  items: Omit<FoodEntry, 'id' | 'date' | 'meal'>[];
+}
+
+export function readSavedMeal(raw: unknown): SavedMeal | null {
+  const o = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>;
+  const name = typeof o.name === 'string' ? o.name.trim().slice(0, 60) : '';
+  const meal = readMeal(o.meal);
+  if (!name || !meal || !Array.isArray(o.items) || !o.items.length || o.items.length > 40) return null;
+  const items: SavedMeal['items'] = [];
+  for (const it of o.items) {
+    const e = readFoodEntry({ ...(it as object), date: '2000-01-01', meal });
+    if (!e) return null;
+    const { id: _id, date: _date, meal: _meal, ...rest } = e;
+    items.push(rest);
+  }
+  return { id: typeof o.id === 'string' ? o.id : undefined, name, meal, items };
+}
+
+/** The saved meal as diary entries on a day, every amount times `portion` (1 = as saved). */
+export function savedMealEntries(m: SavedMeal, date: CivilDate, portion = 1, meal: Meal = m.meal): FoodEntry[] {
+  const k = Number.isFinite(portion) && portion > 0 && portion <= 5 ? portion : 1;
+  const r = (v: number) => Math.round(v * k * 10) / 10;
+  return m.items.map((i) => ({
+    ...i,
+    date,
+    meal,
+    grams: i.grams === null ? null : r(i.grams),
+    kcal: r(i.kcal),
+    protein: r(i.protein),
+    carbs: r(i.carbs),
+    fat: r(i.fat),
+    satFat: i.satFat === null ? null : r(i.satFat),
+    salt: i.salt === null ? null : Math.round(i.salt * k * 100) / 100,
+  }));
+}
+
+/** The mean of the days that have food logged among the seven ending `end`. */
+export function weekAverage(days: DailyRecord[], end: CivilDate): { kcal: number; protein: number; days: number } | null {
+  const start = new Date(Date.parse(end) - 6 * 86_400_000).toISOString().slice(0, 10);
+  const logged = days.filter((d) => d.date >= start && d.date <= end && (d.caloriesKcal ?? 0) > 0);
+  if (!logged.length) return null;
+  const sum = (f: (d: DailyRecord) => number) => logged.reduce((a, d) => a + f(d), 0);
+  return { kcal: sum((d) => d.caloriesKcal ?? 0) / logged.length, protein: sum((d) => d.proteinG ?? 0) / logged.length, days: logged.length };
+}

@@ -1,13 +1,25 @@
 import { Router } from 'express';
-import { parseFoodImport, readFoodEntry, scaleEntry, type FoodEntry } from '../src/pipeline/foodLog';
+import { parseFoodImport, readFoodEntry, readMeal, readSavedMeal, savedMealEntries, scaleEntry, type FoodEntry } from '../src/pipeline/foodLog';
 import { requireUser } from './auth';
 import { asyncHandler, type Deps } from './http';
-import { addFoodEntries, clearFoodDays, deleteFoodEntry, getFoodEntries, getFoodEntry, updateFoodAmounts } from './foodlog-repo';
+import {
+  addFoodEntries,
+  clearFoodDays,
+  deleteFoodEntry,
+  deleteSavedMeal,
+  findSavedMeal,
+  getFoodEntries,
+  getFoodEntry,
+  getSavedMeals,
+  saveMeal,
+  updateFoodAmounts,
+} from './foodlog-repo';
 
 /** The food diary from the Nutrition page: read, pasted in by the day, an entry added or deleted. */
 export function foodLogApiRoutes(deps: Deps): Router {
   const router = Router();
   router.use('/food-log', requireUser(deps));
+  router.use('/saved-meals', requireUser(deps));
 
   router.get(
     '/food-log',
@@ -69,6 +81,50 @@ export function foodLogApiRoutes(deps: Deps): Router {
     asyncHandler(async (req, res) => {
       const ok = await deleteFoodEntry(deps.db, res.locals.userId, String(req.params.id));
       res.status(ok ? 200 : 404).json({ ok });
+    }),
+  );
+
+  router.get(
+    '/saved-meals',
+    asyncHandler(async (_req, res) => {
+      res.json({ meals: await getSavedMeals(deps.db, res.locals.userId) });
+    }),
+  );
+
+  /** Saves (or replaces, by name) a meal. */
+  router.post(
+    '/saved-meals',
+    asyncHandler(async (req, res) => {
+      const m = readSavedMeal(req.body?.meal);
+      if (!m) {
+        res.status(400).json({ error: 'invalid_meal' });
+        return;
+      }
+      res.json({ meal: await saveMeal(deps.db, res.locals.userId, m) });
+    }),
+  );
+
+  router.delete(
+    '/saved-meals/:id',
+    asyncHandler(async (req, res) => {
+      const ok = await deleteSavedMeal(deps.db, res.locals.userId, String(req.params.id));
+      res.status(ok ? 200 : 404).json({ ok });
+    }),
+  );
+
+  /** Logs a saved meal on a day: { date, portion?, meal? }. */
+  router.post(
+    '/saved-meals/:id/log',
+    asyncHandler(async (req, res) => {
+      const m = await findSavedMeal(deps.db, res.locals.userId, String(req.params.id));
+      const date = typeof req.body?.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(req.body.date) ? req.body.date : null;
+      if (!m || !date) {
+        res.status(m ? 400 : 404).json({ error: m ? 'invalid_date' : 'not_found' });
+        return;
+      }
+      const portion = Number(req.body?.portion ?? 1);
+      const entries = savedMealEntries(m, date, portion, readMeal(req.body?.meal) ?? m.meal);
+      res.json({ entries: await addFoodEntries(deps.db, res.locals.userId, entries) });
     }),
   );
 

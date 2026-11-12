@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { ChevronLeft, ChevronRight, Copy, Trash2 } from 'lucide-react';
+import { Bookmark, ChevronLeft, ChevronRight, Copy, Plus, Trash2, X } from 'lucide-react';
 import { t } from '../i18n';
 import { rich } from '../i18n/react';
 import { formatCivilLong, formatInteger, formatMonthYear, weekdayLetter } from '../i18n/format';
@@ -7,7 +7,7 @@ import { addDays, isoWeekdayIndex, type CivilDate } from '../lib/date';
 import type { DailyRecord } from '../types/health';
 import type { FoodLog } from '../hooks/useFoodLog';
 import { useTargets } from '../hooks/useTargets';
-import { byDate, mealsOf, totalsOf, type FoodTotals } from '../pipeline/foodLog';
+import { byDate, mealsOf, savedMealEntries, totalsOf, weekAverage, type FoodEntry, type FoodTotals, type Meal } from '../pipeline/foodLog';
 import { Card, CardHead, fmtNum } from '../ui/primitives';
 
 /**
@@ -61,6 +61,9 @@ export function FoodDiaryCard({ days, today, foodLog }: { days: DailyRecord[]; t
   const dayEntries = dated.get(chosen) ?? [];
   const appDay = record.get(chosen);
   const total = dayEntries.length ? totalsOf(dayEntries) : null;
+  // Fat's floor: half a gram per kilo of the latest weight, to the nearest 5 g.
+  const weight = [...days].reverse().find((d) => d.weightKg !== null)?.weightKg ?? null;
+  const fatFloor = weight === null ? null : Math.round((weight * 0.5) / 5) * 5;
 
   return (
     <Card>
@@ -121,16 +124,19 @@ export function FoodDiaryCard({ days, today, foodLog }: { days: DailyRecord[]; t
         </div>
 
         <div>
-          <p className="text-detail text-zinc-100 mb-3">{formatCivilLong(chosen)}</p>
+          <p className="text-detail text-zinc-100 mb-1">{formatCivilLong(chosen)}</p>
+          <WeekLine days={days} end={chosen} targets={targets} />
+          <SavedMeals foodLog={foodLog} date={chosen} />
           {total ? (
             <>
-              <Bars total={total} targets={targets} />
+              <Bars total={total} targets={targets} fatFloor={fatFloor} />
               {mealsOf(dayEntries).map((m) => (
                 <div key={m.meal} className="mb-3">
                   <div className="flex items-center justify-between gap-3 border-b border-zinc-800 pb-1 mb-1">
                     <span className="text-caption font-medium text-zinc-200">{t('nutrition.diary.meal', { meal: m.meal })}</span>
                     <span className="flex items-center gap-2">
                       <MacroLine x={m.totals} className="text-note" />
+                      <SaveMeal meal={m.meal} entries={m.entries} onSave={foodLog.saveMeal} />
                       {chosen !== today && (
                         <button
                           type="button"
@@ -209,41 +215,144 @@ function DayTotal({ total }: { total: FoodTotals }) {
   );
 }
 
-/** The day against the targets, a bar for energy and each macro. Neutral colours: going over is shown, not scolded. */
-function Bars({ total, targets }: { total: FoodTotals; targets: ReturnType<typeof useTargets>['targets'] }) {
+/**
+ * The day against what matters most while dieting: energy and protein, each a bar with what's
+ * left. Carbs and fat are shown as amounts, fat with a floor (0.5 g per kg) rather than a target.
+ * Neutral colours: going over is shown, not scolded.
+ */
+function Bars({ total, targets, fatFloor }: { total: FoodTotals; targets: ReturnType<typeof useTargets>['targets']; fatFloor: number | null }) {
   const rows = [
     { key: 'kcal', got: total.kcal, target: targets.kcal, color: COLOR.energy, unit: 'kcal' },
     { key: 'protein', got: total.protein, target: targets.proteinG, color: COLOR.protein, unit: 'g' },
-    { key: 'carbs', got: total.carbs, target: targets.carbsG, color: COLOR.carbs, unit: 'g' },
-    { key: 'fat', got: total.fat, target: targets.fatG, color: COLOR.fat, unit: 'g' },
   ] as const;
-  if (rows.every((r) => r.target === null)) return null;
   return (
-    <div className="grid grid-cols-2 gap-x-4 gap-y-2.5 mb-4">
-      {rows.map((r) => {
-        if (r.target === null) return null;
-        const left = r.target - r.got;
-        const pct = Math.min(100, (100 * r.got) / r.target);
-        return (
-          <div key={r.key}>
-            <div className="flex items-baseline justify-between gap-2">
-              <span className="text-note font-medium" style={{ color: r.color }}>
-                {t('nutrition.diary.bar', { what: r.key })}
-              </span>
-              <span className="text-note text-zinc-400 tabular-nums">
-                {t('nutrition.diary.of', { got: n0(r.got), target: n0(r.target), unit: r.unit })}
-              </span>
+    <div className="mb-4">
+      <div className="grid grid-cols-2 gap-x-4">
+        {rows.map((r) => {
+          if (r.target === null) return null;
+          const left = r.target - r.got;
+          const pct = Math.min(100, (100 * r.got) / r.target);
+          return (
+            <div key={r.key}>
+              <div className="flex items-baseline justify-between gap-2">
+                <span className="text-caption font-medium" style={{ color: r.color }}>
+                  {t('nutrition.diary.bar', { what: r.key })}
+                </span>
+                <span className="text-note text-zinc-400 tabular-nums">
+                  {t('nutrition.diary.of', { got: n0(r.got), target: n0(r.target), unit: r.unit })}
+                </span>
+              </div>
+              <div className="h-2 rounded-full bg-zinc-800 mt-1 overflow-hidden">
+                <div className="h-full rounded-full" style={{ width: `${pct}%`, background: r.color, opacity: left < 0 ? 0.6 : 1 }} />
+              </div>
+              <p className="text-caption text-zinc-200 tabular-nums mt-0.5">
+                {t('nutrition.diary.leftOver', { over: left < 0 ? 'yes' : 'no', amount: n0(Math.abs(left)), unit: r.unit })}
+              </p>
             </div>
-            <div className="h-1.5 rounded-full bg-zinc-800 mt-1 overflow-hidden">
-              <div className="h-full rounded-full" style={{ width: `${pct}%`, background: r.color, opacity: left < 0 ? 0.6 : 1 }} />
-            </div>
-            <p className="text-note text-zinc-300 tabular-nums mt-0.5">
-              {t('nutrition.diary.leftOver', { over: left < 0 ? 'yes' : 'no', amount: n0(Math.abs(left)), unit: r.unit })}
-            </p>
-          </div>
-        );
-      })}
+          );
+        })}
+      </div>
+      <p className="text-note text-zinc-400 tabular-nums mt-2">
+        {rich('nutrition.diary.carbsFat', {
+          c: (w) => <span style={{ color: COLOR.carbs }}>{w}</span>,
+          f: (w) => <span style={{ color: COLOR.fat }}>{w}</span>,
+          carbs: n0(total.carbs),
+          fat: n0(total.fat),
+          floor: fatFloor === null ? 'none' : String(fatFloor),
+          low: fatFloor !== null && total.fat < fatFloor ? 'yes' : 'no',
+        })}
+      </p>
     </div>
+  );
+}
+
+/** The last seven days' average energy and protein against the targets. */
+function WeekLine({ days, end, targets }: { days: DailyRecord[]; end: CivilDate; targets: ReturnType<typeof useTargets>['targets'] }) {
+  const w = weekAverage(days, end);
+  if (!w) return null;
+  return (
+    <p className="text-note text-zinc-400 tabular-nums mb-3">
+      {t('nutrition.diary.week', {
+        kcal: n0(w.kcal),
+        protein: n0(w.protein),
+        n: w.days,
+        kcalTarget: targets.kcal === null ? 'none' : n0(targets.kcal),
+        proteinTarget: targets.proteinG === null ? 'none' : n0(targets.proteinG),
+      })}
+    </p>
+  );
+}
+
+/** One tap logs a saved meal on the day shown; × forgets it. */
+function SavedMeals({ foodLog, date }: { foodLog: FoodLog; date: CivilDate }) {
+  const { saved, logSaved, deleteSaved } = foodLog;
+  if (!saved.length) return null;
+  return (
+    <div className="mb-4">
+      <p className="text-note text-zinc-500 mb-1">{t('nutrition.diary.savedTitle')}</p>
+      <div className="flex flex-wrap gap-1.5">
+        {saved.map((m) => (
+          <span key={m.id ?? m.name} className="inline-flex items-center rounded-full border border-zinc-700 bg-zinc-900/60 text-caption">
+            <button type="button" onClick={() => void logSaved(m, date)} className="pl-2.5 pr-1.5 py-1 text-zinc-200 hover:text-amber-300 flex items-center gap-1">
+              <Plus size={12} />
+              {t('nutrition.diary.savedChip', { name: m.name, kcal: n0(totalsOf(savedMealEntries(m, date)).kcal) })}
+            </button>
+            {m.id && (
+              <button type="button" aria-label={t('nutrition.diary.savedDelete', { name: m.name })} onClick={() => void deleteSaved(m.id!)} className="pr-2 pl-0.5 text-zinc-600 hover:text-rose-300">
+                <X size={11} />
+              </button>
+            )}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/** Saves a day's meal under a name; the meal's name is offered. */
+function SaveMeal({ meal, entries, onSave }: { meal: Meal; entries: FoodEntry[]; onSave: FoodLog['saveMeal'] }) {
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState('');
+  const [done, setDone] = useState(false);
+  const save = async () => {
+    if (!name.trim()) return;
+    await onSave(name.trim(), meal, entries);
+    setOpen(false);
+    setDone(true);
+  };
+  if (!open) {
+    return (
+      <button
+        type="button"
+        aria-label={t('nutrition.diary.saveMeal')}
+        title={t('nutrition.diary.saveMeal')}
+        onClick={() => {
+          setName(t('nutrition.diary.meal', { meal }));
+          setOpen(true);
+        }}
+        className={done ? 'text-amber-300' : 'text-zinc-500 hover:text-amber-300'}
+      >
+        <Bookmark size={12} />
+      </button>
+    );
+  }
+  return (
+    <span className="inline-flex items-center gap-1">
+      <input
+        autoFocus
+        aria-label={t('nutrition.diary.saveMeal')}
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') void save();
+          if (e.key === 'Escape') setOpen(false);
+        }}
+        className="w-28 rounded bg-zinc-900 border border-amber-400/60 px-1 py-0 text-note text-zinc-100"
+      />
+      <button type="button" onClick={() => void save()} className="text-note text-amber-300">
+        {t('nutrition.diary.saveMealGo')}
+      </button>
+    </span>
   );
 }
 

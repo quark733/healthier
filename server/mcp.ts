@@ -13,8 +13,19 @@ import { readLogEntry, type LogEntry } from '../src/pipeline/healthLog';
 import { recentLoad, sessionSets, sessionVolume, type StrengthSession } from '../src/pipeline/strength';
 import { setsPerMuscle } from '../src/pipeline/muscles';
 import { getStrengthSessions } from './strength-repo';
-import { addFoodEntries, clearFoodDays, deleteFoodEntry, getFoodEntries, getFoodEntry, updateFoodAmounts } from './foodlog-repo';
-import { byDate, MEALS, readFoodEntry, scaleEntry, totalsOf, type FoodEntry } from '../src/pipeline/foodLog';
+import {
+  addFoodEntries,
+  clearFoodDays,
+  deleteFoodEntry,
+  deleteSavedMeal,
+  findSavedMeal,
+  getFoodEntries,
+  getFoodEntry,
+  getSavedMeals,
+  saveMeal,
+  updateFoodAmounts,
+} from './foodlog-repo';
+import { byDate, MEALS, readFoodEntry, readSavedMeal, savedMealEntries, scaleEntry, totalsOf, type FoodEntry } from '../src/pipeline/foodLog';
 import { getSyncState, getUser } from './repo';
 import { loadHistory } from './sync';
 import { randomToken, sha256 } from './crypto';
@@ -199,6 +210,19 @@ function buildServer(deps: Deps, userId: string, scope: Scope): McpServer {
     },
   );
 
+  server.registerTool(
+    'list_saved_meals',
+    {
+      description:
+        "The person's saved meals (meals they eat again and again, e.g. their breakfast or a prepped lunch box), each with its items and totals. When they name one (\"standard breakfast\", \"box L\"), log it with log_saved_meal instead of listing the foods again.",
+      inputSchema: {},
+    },
+    async () => {
+      const meals = await getSavedMeals(deps.db, userId);
+      return text(meals.map((m) => ({ ...m, totals: roundTotals(totalsOf(savedMealEntries(m, '2000-01-01' as CivilDate))) })));
+    },
+  );
+
   if (scope === 'write') {
     const item = z.object({
       food: z.string().min(1).max(120).describe('What it was, with the brand when known, e.g. "Fiber Havregryn (Axa)"'),
@@ -242,6 +266,53 @@ function buildServer(deps: Deps, userId: string, scope: Scope): McpServer {
         await clearFoodDays(deps.db, userId, [date]);
         await addFoodEntries(deps.db, userId, read);
         return text({ date, saved: read.length, dayTotals: roundTotals(totalsOf(read)) });
+      },
+    );
+
+    server.registerTool(
+      'log_saved_meal',
+      {
+        description:
+          "Log one of the person's saved meals (see list_saved_meals) on a day, by its name or id. portion scales every item (1.2 = a fifth more). Use log_meal afterwards for anything eaten on top, or set_food_grams to change one item. Returns the day's totals.",
+        inputSchema: {
+          name: z.string().min(1).max(60).describe('The saved meal\'s name (any case) or id'),
+          date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().describe('Day eaten, YYYY-MM-DD; today if left out'),
+          portion: z.number().min(0.1).max(5).optional().describe('1 = as saved'),
+          meal: meal.optional().describe('Which meal of the day to log it as; the saved meal\'s own if left out'),
+        },
+      },
+      async ({ name, date, portion, meal: as }) => {
+        const m = await findSavedMeal(deps.db, userId, name);
+        if (!m) return text({ logged: false, reason: 'no saved meal by that name', saved: (await getSavedMeals(deps.db, userId)).map((x) => x.name) });
+        const { today } = await context();
+        const day = (date ?? today) as CivilDate;
+        await addFoodEntries(deps.db, userId, savedMealEntries(m, day, portion ?? 1, as ?? m.meal));
+        const all = await getFoodEntries(deps.db, userId, day, day);
+        return text({ logged: m.name, date: day, dayTotals: roundTotals(totalsOf(all)) });
+      },
+    );
+
+    server.registerTool(
+      'save_meal',
+      {
+        description:
+          "Save a meal the person eats again and again under a short name (e.g. \"Frukost\", \"Låda L\"), so it can be logged in one go later. A meal with the same name is replaced. Work out items as for log_meal.",
+        inputSchema: { name: z.string().min(1).max(60), meal, items: z.array(item).min(1).max(40) },
+      },
+      async ({ name, meal: m, items }) => {
+        const read = readSavedMeal({ name, meal: m, items });
+        if (!read) return text({ saved: false, reason: 'could not read the meal' });
+        const saved = await saveMeal(deps.db, userId, read);
+        return text({ saved: saved.name, id: saved.id, totals: roundTotals(totalsOf(savedMealEntries(saved, '2000-01-01' as CivilDate))) });
+      },
+    );
+
+    server.registerTool(
+      'delete_saved_meal',
+      { description: 'Delete a saved meal by its name or id. Diary entries already logged from it stay.', inputSchema: { name: z.string().min(1).max(60) } },
+      async ({ name }) => {
+        const m = await findSavedMeal(deps.db, userId, name);
+        return text({ deleted: m?.id ? await deleteSavedMeal(deps.db, userId, m.id) : false });
       },
     );
 

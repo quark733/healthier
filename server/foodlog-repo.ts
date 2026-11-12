@@ -1,5 +1,5 @@
 import type { Db } from './db';
-import { readFoodEntry, type FoodEntry } from '../src/pipeline/foodLog';
+import { readFoodEntry, readSavedMeal, type FoodEntry, type SavedMeal } from '../src/pipeline/foodLog';
 
 /** The food diary's rows (migration 15), oldest first. */
 
@@ -71,4 +71,38 @@ export async function deleteFoodEntry(db: Db, userId: string, id: string): Promi
   if (!/^\d+$/.test(id)) return false;
   const r = await db.query('DELETE FROM user_food_log WHERE user_id = $1 AND id = $2', [userId, id]);
   return (r.rowCount ?? 0) > 0;
+}
+
+// Saved meals (migration 17).
+
+export async function getSavedMeals(db: Db, userId: string): Promise<SavedMeal[]> {
+  const { rows } = await db.query<{ id: string; name: string; meal: string; items: unknown }>(
+    'SELECT id::text, name, meal, items FROM user_saved_meals WHERE user_id = $1 ORDER BY id',
+    [userId],
+  );
+  return rows.map((r) => readSavedMeal(r)).filter((m): m is SavedMeal => m !== null);
+}
+
+/** Saves a meal under its name, replacing one of the same name (any case). */
+export async function saveMeal(db: Db, userId: string, m: SavedMeal): Promise<SavedMeal> {
+  const { rows } = await db.query<{ id: string }>(
+    `INSERT INTO user_saved_meals (user_id, name, meal, items) VALUES ($1, $2, $3, $4)
+     ON CONFLICT (user_id, lower(name)) DO UPDATE SET name = EXCLUDED.name, meal = EXCLUDED.meal, items = EXCLUDED.items
+     RETURNING id::text`,
+    [userId, m.name, m.meal, JSON.stringify(m.items)],
+  );
+  return { ...m, id: rows[0].id };
+}
+
+export async function deleteSavedMeal(db: Db, userId: string, id: string): Promise<boolean> {
+  if (!/^\d+$/.test(id)) return false;
+  const r = await db.query('DELETE FROM user_saved_meals WHERE user_id = $1 AND id = $2', [userId, id]);
+  return (r.rowCount ?? 0) > 0;
+}
+
+/** A saved meal by id, or by name ignoring case and surrounding spaces. */
+export async function findSavedMeal(db: Db, userId: string, idOrName: string): Promise<SavedMeal | null> {
+  const all = await getSavedMeals(db, userId);
+  const key = idOrName.trim().toLowerCase();
+  return all.find((m) => m.id === idOrName) ?? all.find((m) => m.name.toLowerCase() === key) ?? null;
 }

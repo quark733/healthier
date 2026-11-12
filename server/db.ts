@@ -295,6 +295,22 @@ const MIGRATIONS: { id: number; name: string; sql: string }[] = [
       ALTER TABLE mcp_keys ADD PRIMARY KEY (user_id, scope);
     `,
   },
+  {
+    id: 17,
+    name: 'saved meals',
+    sql: `
+      -- Meals eaten again and again (SavedMeal in src/pipeline/foodLog.ts), logged with one tap.
+      CREATE TABLE user_saved_meals (
+        id         bigserial PRIMARY KEY,
+        user_id    uuid NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+        name       text NOT NULL,
+        meal       text NOT NULL,
+        items      jsonb NOT NULL,
+        created_at timestamptz NOT NULL DEFAULT now()
+      );
+      CREATE UNIQUE INDEX user_saved_meals_name ON user_saved_meals (user_id, lower(name));
+    `,
+  },
 ];
 
 export function createDb(connectionString: string): Db {
