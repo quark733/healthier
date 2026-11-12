@@ -144,6 +144,18 @@
       "title": "No blood tests yet",
       "detail": "Import a lab report below: the PDF, or its text."
     },
+    "freeT": {
+      "title": "Free testosterone (calculated)",
+      "hint": "Most testosterone in the blood is bound: tightly to SHBG, loosely to albumin. Free testosterone, the small part that isn't bound, is what the body can use, and it can be low even when the total looks fine, for example when SHBG is high. It's worked out here with the Vermeulen formula from total testosterone, SHBG and albumin. Bioavailable is free plus the loosely bound part. For men, free testosterone under about 220 pmol/L with symptoms such as low sex drive, low energy or losing strength is what large studies count as low; a single low result should be repeated on a fasting morning sample before anything is decided.",
+      "free": "Free",
+      "bio": "Bioavailable",
+      "share": "Free share",
+      "inputs": "From {date}: total {total} nmol/L, SHBG {shbg} nmol/L, albumin {albumin} g/L{assumed, select, yes { (not in that test, 43 g/L assumed)} other {}}.",
+      "verdict": "{verdict, select, low {Under 220 pmol/L. If you also have symptoms (low sex drive, low energy, losing strength), repeat it on a fasting morning sample and talk to your doctor.} borderline {Just above the low line with a total under 12 nmol/L. Worth repeating fasting in the morning, after a few weeks of good sleep.} other {In the normal range.}}",
+      "needShbg": "Total testosterone is {total} nmol/L ({date}). Add SHBG from the same sample and free testosterone is worked out here.",
+      "levers": "What moves it, by the evidence: losing body fat (the largest lever while overweight), sleeping 7–9 hours (a week of 5-hour nights lowered it 10–15 %), keeping the deficit moderate, and not cutting fat very low. Vitamin D and zinc only help when you're short of them. Testosterone treatment and boosters can thicken the blood and raise the risk of clots: only with your doctor.",
+      "sources": "Vermeulen 1999 (J Clin Endocrinol Metab 84:3666); Wu 2010, European Male Ageing Study (NEJM 363:123); Bhasin 2018, Endocrine Society guideline (J Clin Endocrinol Metab 103:1715); Corona 2013, weight loss and testosterone (Eur J Endocrinol 168:829); Leproult & Van Cauter 2011, sleep restriction (JAMA 305:2173); Whittaker & Wu 2021, low-fat diets (J Steroid Biochem Mol Biol 210:105878)."
+    },
     "flagged": {
       "title": "Worth a look",
       "hint": "Results outside the lab's range first, then those inside it but short of a guideline goal, with what's usually behind them and what helps."
@@ -224,7 +236,8 @@
         "vitD": "Low in most Swedes by late winter.",
         "crp": "Low-level inflammation; falls with fat loss.",
         "tsh": "Thyroid function, which a long diet can nudge.",
-        "testosterone": "Shows whether the diet and sleep are costing hormones.",
+        "testosterone": "Shows whether the diet and sleep are costing hormones. Take it fasting, 07–10 in the morning, when it is highest.",
+        "shbg": "With testosterone and albumin it gives free testosterone, the part your muscles can use. Take it in the same sample.",
         "alt": "Liver fat, which falls with fat loss.",
         "cystatinC": "The kidney test creatine doesn't skew."
       }

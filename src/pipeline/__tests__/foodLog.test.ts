@@ -82,8 +82,8 @@ test('a saved meal is read, logged on a day, and scaled by portion', async () =>
 
 test('the week average counts only the logged days among the last seven', async () => {
   const { weekAverage } = await import('../foodLog');
-  const day = (date: string, kcal: number | null, protein: number | null) => ({ ...emptyRecord(date as CivilDate), caloriesKcal: kcal, proteinG: protein });
-  const days = [day('2026-01-01', 9000, 900), day('2026-01-03', 3000, 200), day('2026-01-05', null, null), day('2026-01-08', 2000, 100)];
+  const day = (date: string, kcal?: number, protein?: number) => ({ ...emptyRecord(date as CivilDate), caloriesKcal: kcal, proteinG: protein });
+  const days = [day('2026-01-01', 9000, 900), day('2026-01-03', 3000, 200), day('2026-01-05'), day('2026-01-08', 2000, 100)];
   assert.deepEqual(weekAverage(days, '2026-01-08' as CivilDate), { kcal: 2500, protein: 150, days: 2 });
   assert.equal(weekAverage(days, '2025-12-01' as CivilDate), null);
 });

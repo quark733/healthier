@@ -9,6 +9,8 @@ import {
   type BloodGroup, type LabResult, type MarkerHistory, type Status,
 } from '../pipeline/bloodwork';
 import { supplementAdvice, type SupplementVerdict } from '../pipeline/supplements';
+import { freeTestosteroneFrom, freeTVerdict } from '../pipeline/freeTestosterone';
+import { formatCivilLong } from '../i18n/format';
 import type { Gender } from '../pipeline/registry';
 import { Card, CardHead, EmptyState, fmtNum } from '../ui/primitives';
 
@@ -169,6 +171,8 @@ export function BloodView({ demo, today, gender }: { demo: boolean; today: Civil
         </Card>
       )}
 
+      {gender !== 'female' && <FreeTCard results={labs.results} />}
+
       {latestDate && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 items-start">
           <Card>
@@ -224,6 +228,47 @@ export function BloodView({ demo, today, gender }: { demo: boolean; today: Civil
 
       <p className="text-note text-zinc-500 px-1 leading-relaxed">{t('blood.disclaimer')}</p>
     </div>
+  );
+}
+
+/** Free and bioavailable testosterone from total, SHBG and albumin (pipeline/freeTestosterone.ts). */
+function FreeTCard({ results }: { results: LabResult[] }) {
+  const f = freeTestosteroneFrom(results);
+  const total = [...results].filter((r) => r.marker === 'testosterone').sort((a, b) => b.date.localeCompare(a.date))[0];
+  if (!f && !total) return null;
+  const verdict = f ? freeTVerdict(f) : null;
+  return (
+    <Card>
+      <CardHead title={t('blood.freeT.title')} hint={t('blood.freeT.hint')} />
+      <div className="px-5 pb-5 space-y-3">
+        {f ? (
+          <>
+            <div className="flex flex-wrap gap-x-8 gap-y-2">
+              <Stat label={t('blood.freeT.free')} value={`${fmtNum(f.free, 0)} pmol/L`} tone={verdict === 'low' ? 'text-rose-300' : verdict === 'borderline' ? 'text-amber-300' : undefined} />
+              <Stat label={t('blood.freeT.bio')} value={`${fmtNum(f.bioavailable, 1)} nmol/L`} />
+              <Stat label={t('blood.freeT.share')} value={`${fmtNum(f.percent, 1)} %`} />
+            </div>
+            <p className="text-caption text-zinc-300">{t('blood.freeT.verdict', { verdict: verdict ?? 'ok' })}</p>
+            <p className="text-note text-zinc-500">
+              {t('blood.freeT.inputs', {
+                date: formatCivilLong(f.date),
+                total: fmtNum(f.total, 1),
+                shbg: fmtNum(f.shbg, 0),
+                albumin: fmtNum(f.albumin, 0),
+                assumed: f.albuminAssumed ? 'yes' : 'no',
+              })}
+            </p>
+          </>
+        ) : (
+          <p className="text-caption text-zinc-300">{t('blood.freeT.needShbg', { total: fmtNum(total.value, 1), date: formatCivilLong(total.date) })}</p>
+        )}
+        <p className="text-caption text-zinc-400 leading-relaxed">{t('blood.freeT.levers')}</p>
+        <details className="text-note text-zinc-500">
+          <summary className="cursor-pointer">{t('blood.sources')}</summary>
+          <p className="mt-1 leading-relaxed">{t('blood.freeT.sources')}</p>
+        </details>
+      </div>
+    </Card>
   );
 }
 

@@ -294,7 +294,7 @@ export function histories(results: LabResult[]): MarkerHistory[] {
  * What's worth adding at the next test, for someone losing fat while training hard: the markers
  * missing from the latest test. Lp(a) only needs measuring once in a lifetime (EAS 2022).
  */
-export const WORTH_TESTING = ['apob', 'ldl', 'lpa', 'hba1c', 'glucose', 'ferritin', 'hb', 'vitD', 'crp', 'tsh', 'testosterone', 'alt', 'cystatinC'] as const;
+export const WORTH_TESTING = ['apob', 'ldl', 'lpa', 'hba1c', 'glucose', 'ferritin', 'hb', 'vitD', 'crp', 'tsh', 'testosterone', 'shbg', 'alt', 'cystatinC'] as const;
 
 export function missingMarkers(results: LabResult[]): string[] {
   const have = new Set(results.map((r) => r.marker));
