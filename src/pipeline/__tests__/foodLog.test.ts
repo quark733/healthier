@@ -96,3 +96,10 @@ test('the week average counts only the logged days among the last seven', async 
   assert.deepEqual(weekAverage(days, '2026-01-08' as CivilDate), { kcal: 2500, protein: 150, days: 2 });
   assert.equal(weekAverage(days, '2025-12-01' as CivilDate), null);
 });
+
+test('fat’s floor is half a gram per kilo of the latest weight, to the nearest 5 g', async () => {
+  const { fatFloorFor } = await import('../foodLog');
+  const at = (date: string, weightKg: number | null) => ({ ...emptyRecord(date as CivilDate), weightKg });
+  assert.equal(fatFloorFor([at('2026-01-01', 120), at('2026-01-02', 131), at('2026-01-03', null)]), 65);
+  assert.equal(fatFloorFor([at('2026-01-01', null)]), null);
+});

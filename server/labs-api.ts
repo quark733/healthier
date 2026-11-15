@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { markerFor, parseLabText, type LabResult } from '../src/pipeline/bloodwork';
 import { requireUser } from './auth';
 import { asyncHandler, type Deps } from './http';
+import type { Db } from './db';
 
 interface Row {
   date: string;
@@ -23,6 +24,30 @@ const toResult = (r: Row): LabResult => ({
   refLow: r.ref_low === null ? null : Number(r.ref_low),
   refHigh: r.ref_high === null ? null : Number(r.ref_high),
 });
+
+/** Stores results in one go; a result with the same date and name replaces the one there. */
+export async function saveLabResults(db: Db, userId: string, results: LabResult[]): Promise<void> {
+  const client = await db.connect();
+  try {
+    await client.query('BEGIN');
+    for (const r of results) {
+      await client.query(
+        `INSERT INTO user_lab_results (user_id, date, name, value, cmp, unit, ref_low, ref_high)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+         ON CONFLICT (user_id, date, name) DO UPDATE
+           SET value = EXCLUDED.value, cmp = EXCLUDED.cmp, unit = EXCLUDED.unit,
+               ref_low = EXCLUDED.ref_low, ref_high = EXCLUDED.ref_high`,
+        [userId, r.date, r.name, r.value, r.cmp, r.unit, r.refLow, r.refHigh],
+      );
+    }
+    await client.query('COMMIT');
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
+}
 
 /**
  * Blood test results: all of them read, a report's text imported, everything deleted. The text is
@@ -54,26 +79,7 @@ export function labsApiRoutes(deps: Deps): Router {
         res.status(400).json({ error: 'no_results', unread: unread.length });
         return;
       }
-      const client = await deps.db.connect();
-      try {
-        await client.query('BEGIN');
-        for (const r of results) {
-          await client.query(
-            `INSERT INTO user_lab_results (user_id, date, name, value, cmp, unit, ref_low, ref_high)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-             ON CONFLICT (user_id, date, name) DO UPDATE
-               SET value = EXCLUDED.value, cmp = EXCLUDED.cmp, unit = EXCLUDED.unit,
-                   ref_low = EXCLUDED.ref_low, ref_high = EXCLUDED.ref_high`,
-            [res.locals.userId, r.date, r.name, r.value, r.cmp, r.unit, r.refLow, r.refHigh],
-          );
-        }
-        await client.query('COMMIT');
-      } catch (err) {
-        await client.query('ROLLBACK');
-        throw err;
-      } finally {
-        client.release();
-      }
+      await saveLabResults(deps.db, res.locals.userId, results);
       res.json({ imported: results.length, unread: unread.length });
     }),
   );

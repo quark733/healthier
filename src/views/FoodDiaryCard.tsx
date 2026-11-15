@@ -7,7 +7,7 @@ import { addDays, isoWeekdayIndex, type CivilDate } from '../lib/date';
 import type { DailyRecord } from '../types/health';
 import type { FoodLog } from '../hooks/useFoodLog';
 import { useTargets } from '../hooks/useTargets';
-import { byDate, mealsOf, savedMealEntries, totalsOf, weekAverage, type FoodEntry, type FoodTotals, type Meal } from '../pipeline/foodLog';
+import { byDate, fatFloorFor, mealsOf, savedMealEntries, totalsOf, weekAverage, type FoodEntry, type FoodTotals, type Meal } from '../pipeline/foodLog';
 import { Card, CardHead, MACRO, fmtNum } from '../ui/primitives';
 
 /**
@@ -61,9 +61,7 @@ export function FoodDiaryCard({ days, today, foodLog }: { days: DailyRecord[]; t
   const dayEntries = dated.get(chosen) ?? [];
   const appDay = record.get(chosen);
   const total = dayEntries.length ? totalsOf(dayEntries) : null;
-  // Fat's floor: half a gram per kilo of the latest weight, to the nearest 5 g.
-  const weight = [...days].reverse().find((d) => d.weightKg !== null)?.weightKg ?? null;
-  const fatFloor = weight === null ? null : Math.round((weight * 0.5) / 5) * 5;
+  const fatFloor = fatFloorFor(days);
 
   return (
     <Card>
@@ -220,7 +218,7 @@ function DayTotal({ total }: { total: FoodTotals }) {
  * left. Carbs and fat are shown as amounts, fat with a floor (0.5 g per kg) rather than a target.
  * Neutral colours: going over is shown, not scolded.
  */
-function Bars({ total, targets, fatFloor }: { total: FoodTotals; targets: ReturnType<typeof useTargets>['targets']; fatFloor: number | null }) {
+export function Bars({ total, targets, fatFloor }: { total: FoodTotals; targets: ReturnType<typeof useTargets>['targets']; fatFloor: number | null }) {
   const rows = [
     { key: 'kcal', got: total.kcal, target: targets.kcal, color: COLOR.energy, unit: 'kcal' },
     { key: 'protein', got: total.protein, target: targets.proteinG, color: COLOR.protein, unit: 'g' },
@@ -283,13 +281,13 @@ function WeekLine({ days, end, targets }: { days: DailyRecord[]; end: CivilDate;
   );
 }
 
-/** One tap logs a saved meal on the day shown; × forgets it. */
-function SavedMeals({ foodLog, date }: { foodLog: FoodLog; date: CivilDate }) {
+/** One tap logs a saved meal on the day shown; × forgets it (not offered on Today). */
+export function SavedMeals({ foodLog, date, forget = true, title }: { foodLog: FoodLog; date: CivilDate; forget?: boolean; title?: string }) {
   const { saved, logSaved, deleteSaved } = foodLog;
   if (!saved.length) return null;
   return (
-    <div className="mb-4">
-      <p className="text-note text-zinc-500 mb-1">{t('food.diary.savedTitle')}</p>
+    <div className={forget ? 'mb-4' : ''}>
+      <p className="text-note text-zinc-500 mb-1">{title ?? t('food.diary.savedTitle')}</p>
       <div className="flex flex-wrap gap-1.5">
         {saved.map((m) => (
           <span key={m.id ?? m.name} className="inline-flex items-center rounded-full border border-zinc-700 bg-zinc-900/60 text-caption">
@@ -297,7 +295,7 @@ function SavedMeals({ foodLog, date }: { foodLog: FoodLog; date: CivilDate }) {
               <Plus size={12} />
               {t('food.diary.savedChip', { name: m.name, kcal: n0(totalsOf(savedMealEntries(m, date)).kcal) })}
             </button>
-            {m.id && (
+            {forget && m.id && (
               <button type="button" aria-label={t('food.diary.savedDelete', { name: m.name })} onClick={() => void deleteSaved(m.id!)} className="pr-2 pl-0.5 text-zinc-600 hover:text-rose-300">
                 <X size={11} />
               </button>

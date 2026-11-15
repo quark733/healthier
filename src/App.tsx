@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import type { IntradaySample } from './types/health';
+import type { DailyRecord, IntradaySample } from './types/health';
 import { ChevronLeft, ChevronRight, CircleDotDashed, FlaskConical, Footprints, Heart, Moon, RefreshCw, Settings, User, ShieldAlert, PersonStanding, Utensils, Dumbbell, Droplet } from 'lucide-react';
 import { useAuth } from './hooks/useAuth';
 import { useInstance } from './hooks/useInstance';
@@ -256,7 +256,7 @@ export default function App() {
           <MeasurementsProvider demo={demo} today={today}>
           <HistoryProvider data={health.data} info={health.history} live={!demo} local={health.localHistory}>
           <main className="mt-3 md:mt-6 animate-in fade-in duration-500">
-            {view === 'today' && <TodayView data={fed!} gender={gender} intraday={intradayDays} clock={demo ? DEMO_CLOCK : undefined} demo={demo} />}
+            {view === 'today' && <TodayView data={fed!} gender={gender} intraday={intradayDays} clock={demo ? DEMO_CLOCK : undefined} demo={demo} foodLog={foodLog} />}
             {view === 'activity' && <ActivityView data={health.data} intraday={intradayDays} clock={demo ? DEMO_CLOCK : undefined} />}
             {view === 'sleep' && <SleepView data={health.data} intraday={intradayDays} clock={demo ? DEMO_CLOCK : undefined} />}
             {view === 'vitals' && <VitalsView data={health.data} intraday={intradayDays} clock={demo ? DEMO_CLOCK : undefined} />}
@@ -322,7 +322,7 @@ export default function App() {
           </div>
         </div>
         <div className="max-w-5xl mx-auto px-4 pt-1 md:pt-2">
-          <PageNav view={view} setView={setView} />
+          <PageNav view={view} setView={setView} days={health.data?.days} />
         </div>
       </header>
       {shell}
@@ -413,15 +413,28 @@ const EDGE = 48;
  * sideways on its own, by swipe, trackpad or mouse wheel, and an edge with pages past it shows a
  * small arrow that slides the row along.
  */
-function PageNav({ view, setView }: {
+function PageNav({ view, setView, days }: {
   view: View;
   setView: (view: View) => void;
+  /** The synced days: Sleep, Vitals and Labs show only while a device sends what they're about. */
+  days?: DailyRecord[];
 }) {
   const tracking = useCycleTracking();
-  // Turning tracking off on the Settings page takes the Cycle page away; never leave anyone on it.
+  const has = useMemo(() => {
+    if (!days?.length) return { sleep: true, vitals: true };
+    // Anything in the last three weeks: a device that stopped sending a month ago leaves an empty page.
+    const recent = days.slice(-21);
+    return {
+      sleep: recent.some((d) => d.sleep !== null),
+      vitals: recent.some((d) => d.restingHr !== null || d.hrv !== null || d.spo2 !== null),
+    };
+  }, [days]);
+  // Turning tracking off on the Settings page takes the Cycle page away; never leave anyone on it,
+  // nor on a page that has nothing to show.
   useEffect(() => {
     if (view === 'cycle' && !tracking) setView('today');
-  }, [view, tracking, setView]);
+    if ((view === 'sleep' && !has.sleep) || ((view === 'vitals' || view === 'labs') && !has.vitals)) setView('today');
+  }, [view, tracking, has, setView]);
 
   const row = useRef<HTMLDivElement>(null);
   const [edges, setEdges] = useState({ before: false, after: false });
@@ -498,18 +511,22 @@ function PageNav({ view, setView }: {
           active={view === 'training'} onClick={() => setView('training')}
           icon={<Dumbbell size={14} />} label={t('app.nav.training')} color="text-orange-400"
         />
-        <NavButton
-          active={view === 'sleep'} onClick={() => setView('sleep')}
-          icon={<Moon size={14} />} label={t('app.nav.sleep')} color={DOMAIN.sleep.text}
-        />
+        {has.sleep && (
+          <NavButton
+            active={view === 'sleep'} onClick={() => setView('sleep')}
+            icon={<Moon size={14} />} label={t('app.nav.sleep')} color={DOMAIN.sleep.text}
+          />
+        )}
         <NavButton
           active={view === 'activity'} onClick={() => setView('activity')}
           icon={<Footprints size={14} />} label={t('app.nav.activity')} color={DOMAIN.movement.text}
         />
-        <NavButton
-          active={view === 'vitals'} onClick={() => setView('vitals')}
-          icon={<Heart size={14} />} label={t('app.nav.vitals')} color={DOMAIN.cardio.text}
-        />
+        {has.vitals && (
+          <NavButton
+            active={view === 'vitals'} onClick={() => setView('vitals')}
+            icon={<Heart size={14} />} label={t('app.nav.vitals')} color={DOMAIN.cardio.text}
+          />
+        )}
         <NavButton
           active={view === 'body'} onClick={() => setView('body')}
           icon={<PersonStanding size={14} />} label={t('app.nav.body')} color={DOMAIN.body.text}
@@ -524,10 +541,12 @@ function PageNav({ view, setView }: {
             icon={<CircleDotDashed size={14} />} label={t('app.nav.cycle')} color={DOMAIN.cycle.text}
           />
         )}
-        <NavButton
-          active={view === 'labs'} onClick={() => setView('labs')}
-          icon={<FlaskConical size={14} />} label={t('app.nav.labs')} color="text-yellow-400"
-        />
+        {has.vitals && (
+          <NavButton
+            active={view === 'labs'} onClick={() => setView('labs')}
+            icon={<FlaskConical size={14} />} label={t('app.nav.labs')} color="text-yellow-400"
+          />
+        )}
         {edges.after && <RowEdge side="end" onClick={() => slide(1)} />}
       </div>
     </nav>

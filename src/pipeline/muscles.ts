@@ -72,6 +72,23 @@ export interface MuscleWeek {
   /** Fractional hard sets in the 7 days. */
   sets: number;
   zone: 'below' | 'productive' | 'high' | 'over';
+  /** Sets to aim for in the coming week (nextWeekSets). */
+  next: number;
+}
+
+/**
+ * Sets to aim for next week, from this week's, for someone eating less to keep muscle. RP's advice
+ * for a diet is to hold volume in the lower productive range rather than build it up week on week
+ * (recovery is worse in a deficit), so: below MEV, up to MEV; under the bottom of MAV, two more,
+ * no higher than it; within MAV, the same; above it, back to its top. Whole sets.
+ */
+export function nextWeekSets(muscle: Muscle, sets: number): number {
+  const l = LANDMARKS[muscle];
+  const now = Math.round(sets);
+  if (sets < l.mev) return l.mev;
+  if (sets < l.mav[0]) return Math.min(now + 2, l.mav[0]);
+  if (sets <= l.mav[1]) return Math.max(now, l.mav[0]);
+  return l.mav[1];
 }
 
 /** Below MEV, from MEV to the top of MAV, from there to MRV, and past MRV. */
@@ -102,7 +119,7 @@ export function setsPerMuscle(sessions: StrengthSession[], today: CivilDate): { 
     }
   }
   return {
-    week: MUSCLES.map((muscle) => ({ muscle, sets: totals[muscle], zone: zoneOf(muscle, totals[muscle]) })),
+    week: MUSCLES.map((muscle) => ({ muscle, sets: totals[muscle], zone: zoneOf(muscle, totals[muscle]), next: nextWeekSets(muscle, totals[muscle]) })),
     uncounted: [...uncounted].sort(),
   };
 }

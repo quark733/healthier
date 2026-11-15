@@ -304,7 +304,10 @@ export interface LoadWindow {
 export interface RecentLoad {
   /** The last 7 days, today included. */
   week: LoadWindow;
-  /** A week's worth, on average, over the 28 days before those 7. Null without any training in them. */
+  /**
+   * A usual week: the average of the four 7-day weeks before this one, counting only the weeks
+   * with training in them (a week off, ill or away, doesn't drag the usual down). Null without any.
+   */
   usual: LoadWindow | null;
   /** This week's sets against the usual week's: 1 is the same. */
   ratio: number | null;
@@ -319,6 +322,17 @@ const windowOf = (sessions: StrengthSession[], from: CivilDate, to: CivilDate): 
   };
 };
 
+/** Which of the four 7-day weeks before `today`'s (0 = the one just before) had training. */
+function trainedWeeks(sessions: StrengthSession[], today: CivilDate): number {
+  let n = 0;
+  for (let w = 0; w < 4; w++) {
+    const to = addDays(today, -7 - 7 * w);
+    const from = addDays(to, -6);
+    if (sessions.some((s) => s.date >= from && s.date <= to)) n++;
+  }
+  return n;
+}
+
 /**
  * How hard the last week was against the four before it. Sets are the measure: a hard set is
  * the unit most training research counts volume in, and unlike kilograms it doesn't swing with
@@ -327,11 +341,12 @@ const windowOf = (sessions: StrengthSession[], from: CivilDate, to: CivilDate): 
 export function recentLoad(sessions: StrengthSession[], today: CivilDate): RecentLoad {
   const week = windowOf(sessions, addDays(today, -6), today);
   const before = windowOf(sessions, addDays(today, -34), addDays(today, -7));
-  const usual = before.sessions ? { sessions: before.sessions / 4, sets: before.sets / 4, volumeKg: before.volumeKg / 4 } : null;
+  const n = trainedWeeks(sessions, today);
+  const usual = n ? { sessions: before.sessions / n, sets: before.sets / n, volumeKg: before.volumeKg / n } : null;
   return { week, usual, ratio: usual && usual.sets > 0 ? week.sets / usual.sets : null };
 }
 
-/** Sets per exercise in the last 7 days against a usual week of the 28 before, most sets first. */
+/** Sets per exercise in the last 7 days against a usual week of the 28 before (weeks with training only), most sets first. */
 export function setsByExercise(sessions: StrengthSession[], today: CivilDate): { name: string; week: number; usual: number }[] {
   const weekFrom = addDays(today, -6);
   const usualFrom = addDays(today, -34);
@@ -342,11 +357,12 @@ export function setsByExercise(sessions: StrengthSession[], today: CivilDate): {
       const n = e.sets.reduce((sum, set) => sum + set.count, 0);
       const row = rows.get(e.name) ?? { week: 0, usual: 0 };
       if (s.date >= weekFrom) row.week += n;
-      else row.usual += n / 4;
+      else row.usual += n;
       rows.set(e.name, row);
     }
   }
-  return [...rows.entries()].map(([name, r]) => ({ name, ...r })).sort((a, b) => b.week - a.week || b.usual - a.usual);
+  const trained = trainedWeeks(sessions, today) || 1;
+  return [...rows.entries()].map(([name, r]) => ({ name, week: r.week, usual: r.usual / trained })).sort((a, b) => b.week - a.week || b.usual - a.usual);
 }
 
 /** Each exercise's best: the heaviest set and the best estimated one-rep max, with their dates. */

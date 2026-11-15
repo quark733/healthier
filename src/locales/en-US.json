@@ -546,7 +546,6 @@
     "add": "Add",
     "close": "Close",
     "none": "No readings yet",
-    "prompt": "No readings yet. Tap Add after your morning measurement.",
     "showAll": "{all, select, yes {Show fewer} other {Show all {count}}}",
     "recent": "Latest readings",
     "delete": "Delete reading",
@@ -1325,7 +1324,8 @@
       "left": "{kcal} kcal left",
       "over": "{kcal} kcal over",
       "noTargets": "Add your targets on the Nutrition page to see what's left.",
-      "nothing": "Nothing logged yet for {date}."
+      "nothing": "Nothing logged yet for {date}.",
+      "saved": "Add a saved meal to today:"
     },
     "training": {
       "title": "Training load",
@@ -1387,7 +1387,7 @@
       "pace": "{kg} kg/week ({pct}%)",
       "trend": "Your pace, 5 weeks",
       "trendNone": "Not enough weigh-ins yet",
-      "burn": "You burn, 4 weeks",
+      "burn": "Maintenance",
       "burnValue": "≈ {kcal} kcal a day",
       "fat": "Fat, 8 weeks",
       "lean": "Lean mass, 8 weeks",
@@ -2051,9 +2051,7 @@
   },
   "food": {
     "macros": {
-      "protein": "Protein",
-      "carbs": "Carbohydrate",
-      "fat": "Fat"
+      "protein": "Protein"
     },
     "burn": {
       "title": "Calories for your goal",
@@ -2065,10 +2063,6 @@
       "use": "{current, select, yes {In use} other {Use}}",
       "note": "0.5–1% of bodyweight a week is the range advised for keeping muscle (Helms et al. 2014). Protein stays at your target; carbs take most of the change.",
       "saved": "Your energy target is now {kcal} kcal."
-    },
-    "rest": {
-      "ideas": "Ideas for the {grams} g of {focus, select, protein {protein} carbs {carbs} other {fat}} left:",
-      "foodValue": "{amount} g {focus, select, protein {protein} carbs {carbs} other {fat}} · {kcal} kcal"
     },
     "diary": {
       "title": "Food diary",
@@ -2104,26 +2098,6 @@
       "save": "Save",
       "saved": "{n, plural, one {# food saved} other {# foods saved}}{unread, plural, =0 {.} one {; # line couldn't be read.} other {; # lines couldn't be read.}}",
       "failed": "Nothing could be read. Check that each line has the date first and ten parts."
-    },
-    "foods": {
-      "quark": "Quark, {grams} g",
-      "skyr": "Skyr, {grams} g",
-      "cottageCheese": "Cottage cheese, {grams} g",
-      "chicken": "Chicken breast, {grams} g cooked",
-      "tuna": "Tuna in water, {grams} g",
-      "eggs": "2 eggs ({grams} g)",
-      "wheyShake": "Whey shake, {grams} g powder",
-      "salmon": "Salmon, {grams} g",
-      "mince": "Beef mince 10%, {grams} g",
-      "oats": "Oats, {grams} g dry",
-      "rice": "Rice, {grams} g cooked",
-      "potatoes": "Potatoes, {grams} g",
-      "pasta": "Pasta, {grams} g cooked",
-      "bread": "Bread, 2 slices ({grams} g)",
-      "banana": "Banana ({grams} g)",
-      "peanutButter": "Peanut butter, {grams} g",
-      "nuts": "Nuts, {grams} g",
-      "oliveOil": "Olive oil, {grams} g"
     }
   },
   "training": {
@@ -2149,9 +2123,10 @@
     },
     "muscleWeek": {
       "title": "Sets per muscle, last 7 days",
-      "hint": "Work sets counted fractionally: 1 for the muscle an exercise mainly trains, 0.5 for the ones it trains on the side, the count that predicted growth best across 35 studies (Pelland et al. 2024). The marks are Renaissance Periodization's weekly landmarks: minimum effective (MEV), the productive range up to the top of MAV, and maximum recoverable (MRV). They're guides for an average lifter, not your own limits. While eating less, the lower part of the productive range is usually enough to keep muscle.",
+      "hint": "Work sets counted fractionally: 1 for the muscle an exercise mainly trains, 0.5 for the ones it trains on the side, the count that predicted growth best across 35 studies (Pelland et al. 2024). The marks are Renaissance Periodization's weekly landmarks: minimum effective (MEV), the productive range up to the top of MAV, and maximum recoverable (MRV). They're guides for an average lifter, not your own limits. While eating less, the lower part of the productive range is usually enough to keep muscle. Next week's figure follows that: up to MEV if below it, two more sets a week until the bottom of MAV, the same within MAV, and back to its top if above it.",
       "value": "{sets} sets · {zone, select, below {below MEV ({mev})} productive {productive ({mev}–{mavTop})} high {high, near MRV ({mrv})} other {past MRV ({mrv})}}",
-      "uncounted": "Not counted (no muscle match): {names}"
+      "uncounted": "Not counted (no muscle match): {names}",
+      "next": "Next week: {sets} sets{change, select, up { (more)} down { (fewer)} other {}}"
     },
     "loading": "Loading your training…",
     "loadFailed": "Couldn't load your training",
@@ -2170,7 +2145,7 @@
     },
     "week": {
       "title": "Last 7 days",
-      "hint": "Against a usual week: the average of the four weeks before.",
+      "hint": "Against a usual week: the average of the four weeks before, counting only the weeks you trained, so a week off doesn't lower the bar.",
       "sessions": "Sessions",
       "sets": "Sets",
       "volume": "Volume",
@@ -2217,7 +2192,7 @@
     },
     "perExercise": {
       "title": "Sets per exercise",
-      "hint": "The last 7 days, against a usual week of the four before.",
+      "hint": "The last 7 days, against a usual week of the four before (weeks you trained).",
       "value": "{week}<muted> · usual {usual}</muted>",
       "none": "No sets in the last five weeks."
     },

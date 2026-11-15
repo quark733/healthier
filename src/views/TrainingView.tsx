@@ -144,7 +144,7 @@ export function TrainingView({ demo, today, notice, days = [] }: { demo: boolean
       <Card>
         <CardHead title={t('training.muscleWeek.title')} hint={t('training.muscleWeek.hint')} />
         <div className="px-5 pb-5">
-          <MuscleWeekRows week={muscles.week} />
+          <MuscleWeekRows week={muscles.week} next />
           {muscles.uncounted.length > 0 && (
             <p className="text-note text-zinc-500 mt-3">{t('training.muscleWeek.uncounted', { names: muscles.uncounted.join(', ') })}</p>
           )}

@@ -26,6 +26,7 @@ import { useTargets } from '../hooks/useTargets';
 import { useStrength } from '../hooks/useStrength';
 import { CheckinCard, FoodToday, TrainingDoseCard, WeightGoal } from './WellbeingCards';
 import { MeasurementsRow } from './MeasurementsCards';
+import type { FoodLog } from '../hooks/useFoodLog';
 import { useCheckins } from '../hooks/useCheckins';
 import { judgeCheckin } from '../pipeline/checkin';
 import { trainingDose } from '../pipeline/trainingDose';
@@ -39,10 +40,13 @@ export function TodayView({
   intraday,
   clock,
   demo = false,
+  foodLog,
 }: {
   data: SyncResult;
   /** Demo mode: made-up training and targets instead of the person's. */
   demo?: boolean;
+  /** The food diary, for the saved meals Today offers. */
+  foodLog?: FoodLog;
   /** Picks the body battery's figure. */
   gender: Gender | null;
   intraday?: IntradayDays;
@@ -106,7 +110,7 @@ export function TodayView({
 
       {/* Food, training and bodyweight first: what goes in, what's asked of the body, and where it's heading. */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3 items-stretch">
-        <FoodToday day={last} targets={targets} today={today} />
+        <FoodToday day={last} days={days} targets={targets} today={today} foodLog={foodLog} />
         <TrainingDoseCard
           dose={trainingDose({ days, sessions: strength.data?.sessions ?? [], today, readiness: s.readiness, sleepNeedSet: goals.sleepNeed, checkin: judgeCheckin(checkins.checkins, today) })}
           hasSessions={(strength.data?.sessions ?? []).length > 0}

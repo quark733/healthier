@@ -106,17 +106,18 @@ describe('strength load over weeks', () => {
     assert.equal(weeks[1].volumeKg, sessionVolume(sessions[0]) + sessionVolume(sessions[1]));
   });
 
-  it('compares the last 7 days with a usual week of the 28 before', () => {
+  it('compares the last 7 days with a usual week of the 28 before, counting only weeks with training', () => {
     const load = recentLoad(sessions, '2026-09-10');
     assert.equal(load.week.sessions, 2);
-    assert.equal(load.usual!.sessions, 0.25);
+    // One session in the four weeks before, in one of them: a usual week is that week.
+    assert.equal(load.usual!.sessions, 1);
     assert.equal(load.ratio, load.week.sets / load.usual!.sets);
     assert.equal(recentLoad(sessions, '2026-09-04').usual, null);
   });
 
   it('counts sets per exercise and finds each one’s best', () => {
     const rows = setsByExercise(sessions, '2026-09-10');
-    assert.deepEqual(rows.find((r) => r.name === 'Bench Press'), { name: 'Bench Press', week: 5, usual: 1.5 });
+    assert.deepEqual(rows.find((r) => r.name === 'Bench Press'), { name: 'Bench Press', week: 5, usual: 6 });
     const bench = personalBests(sessions).find((b) => b.name === 'Bench Press')!;
     assert.deepEqual([bench.heaviest, bench.heaviestOn, bench.sessions], [105, '2026-09-08', 2]);
   });

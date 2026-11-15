@@ -238,3 +238,9 @@ export function weekAverage(days: DailyRecord[], end: CivilDate): { kcal: number
   const sum = (f: (d: DailyRecord) => number) => logged.reduce((a, d) => a + f(d), 0);
   return { kcal: sum((d) => d.nutrition?.kcal ?? 0) / logged.length, protein: sum((d) => d.nutrition?.proteinG ?? 0) / logged.length, days: logged.length };
 }
+
+/** Fat's floor: half a gram per kilo of the latest weight, to the nearest 5 g (null without a weight). */
+export function fatFloorFor(days: DailyRecord[]): number | null {
+  const weight = [...days].reverse().find((d) => d.weightKg !== null)?.weightKg ?? null;
+  return weight === null ? null : Math.round((weight * 0.5) / 5) * 5;
+}

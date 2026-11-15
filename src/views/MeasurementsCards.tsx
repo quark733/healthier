@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Activity, Ruler, Trash2 } from 'lucide-react';
 import { t } from '../i18n';
 import { formatCivilLong, formatClock, formatInteger } from '../i18n/format';
-import type { CivilDate } from '../lib/date';
+import { addDays, type CivilDate } from '../lib/date';
 import { useMeasurements } from '../hooks/useMeasurements';
 import { bpSummary, HOME_BP_HIGH, waistSummary, type Measurement } from '../pipeline/measurements';
 import { Card, CardHead, Row, fmtNum } from '../ui/primitives';
@@ -132,7 +132,10 @@ function Summaries({ today, heightCm, compact = false }: { today: CivilDate; hei
 export function MeasurementsRow({ today, heightCm }: { today: CivilDate; heightCm: number | null }) {
   const [open, setOpen] = useState(false);
   const { list } = useMeasurements();
-  const empty = list.length === 0;
+  // Only for someone measuring: nothing in the last 30 days and the row stays off Today
+  // (the Body page keeps the form and the history).
+  const since = addDays(today, -30);
+  if (!open && !list.some((m) => m.date >= since)) return null;
   return (
     <Card>
       <div className="px-4 py-3">
@@ -145,13 +148,9 @@ export function MeasurementsRow({ today, heightCm }: { today: CivilDate; heightC
             {open ? t('measure.close') : t('measure.add')}
           </button>
         </div>
-        {empty && !open ? (
-          <p className="text-caption text-zinc-500 mt-1">{t('measure.prompt')}</p>
-        ) : (
-          <div className="mt-1">
-            <Summaries today={today} heightCm={heightCm} compact={!open} />
-          </div>
-        )}
+        <div className="mt-1">
+          <Summaries today={today} heightCm={heightCm} compact={!open} />
+        </div>
         {open && (
           <div className="mt-3 pt-3 border-t border-zinc-800">
             <AddForms today={today} onDone={() => setOpen(false)} />

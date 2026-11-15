@@ -8,7 +8,10 @@ import { latestMaintenance } from '../pipeline/eating';
 import { CHECKIN_ITEMS, caffeineEffect, judgeCheckin, type Checkin, type CheckinItem } from '../pipeline/checkin';
 import { addDays, daysBetween, type CivilDate } from '../lib/date';
 import { bodyComposition, series, weightTrend } from '../pipeline/derive';
-import { suggest, type Food } from '../pipeline/foods';
+import { fatFloorFor } from '../pipeline/foodLog';
+import type { FoodLog } from '../hooks/useFoodLog';
+import { rich } from '../i18n/react';
+import { SavedMeals } from './FoodDiaryCard';
 import { LANDMARKS, setsPerMuscle, type Muscle, type MuscleWeek } from '../pipeline/muscles';
 import { recentLoad, sessionSets, sessionVolume, type StrengthSession } from '../pipeline/strength';
 import { KEEP_MUSCLE_LOSS_PCT, weightPace, type Targets } from '../pipeline/targets';
@@ -30,27 +33,6 @@ export const MUSCLE_NAME = {
   biceps: 'training.muscles.biceps',
   triceps: 'training.muscles.triceps',
 } as const satisfies Record<Muscle, MessageKey>;
-
-const FOOD_NAME = {
-  quark: 'food.foods.quark',
-  skyr: 'food.foods.skyr',
-  cottageCheese: 'food.foods.cottageCheese',
-  chicken: 'food.foods.chicken',
-  tuna: 'food.foods.tuna',
-  eggs: 'food.foods.eggs',
-  wheyShake: 'food.foods.wheyShake',
-  salmon: 'food.foods.salmon',
-  mince: 'food.foods.mince',
-  oats: 'food.foods.oats',
-  rice: 'food.foods.rice',
-  potatoes: 'food.foods.potatoes',
-  pasta: 'food.foods.pasta',
-  bread: 'food.foods.bread',
-  banana: 'food.foods.banana',
-  peanutButter: 'food.foods.peanutButter',
-  nuts: 'food.foods.nuts',
-  oliveOil: 'food.foods.oliveOil',
-} as const satisfies Record<string, MessageKey>;
 
 const Head = ({ title, icon }: { title: string; icon: React.ReactNode }) => (
   <div className="flex items-start justify-between">
@@ -76,59 +58,56 @@ function MacroBar({ label, eaten, target, color, unit }: { label: string; eaten:
   );
 }
 
-/** What's left of today's targets, in plain words. */
-export function remainingOf(day: DailyRecord | undefined, targets: Targets) {
-  const left = (target: number | null, eaten: number | undefined) => (target === null ? null : target - (eaten ?? 0));
-  return {
-    kcal: left(targets.kcal, day?.nutrition?.kcal),
-    proteinG: left(targets.proteinG, day?.nutrition?.proteinG),
-    carbsG: left(targets.carbsG, day?.nutrition?.carbsG),
-    fatG: left(targets.fatG, day?.nutrition?.fatG),
-  };
-}
-
-export function FoodLine({ food, focus }: { food: Food; focus: 'protein' | 'carbs' | 'fat' }) {
-  const amount = focus === 'protein' ? food.proteinG : focus === 'carbs' ? food.carbsG : food.fatG;
-  return (
-    <Row dense label={t(FOOD_NAME[food.id as keyof typeof FOOD_NAME], { grams: food.portion })}>
-      {t('food.rest.foodValue', { amount: fmtNum(amount, 0), focus, kcal: fmtNum(food.kcal, 0) })}
-    </Row>
-  );
-}
-
-export function FoodToday({ day, targets, today }: { day: DailyRecord | undefined; targets: Targets; today: CivilDate }) {
+/**
+ * Today's food at a glance: energy and protein, the two that matter most while dieting, against
+ * their targets; carbs and fat as amounts, fat against its floor; and the saved meals, one tap to
+ * add to today. Logging itself happens in the food diary (Nutrition) or through Claude.
+ */
+export function FoodToday({ day, days, targets, today, foodLog }: { day: DailyRecord | undefined; days: DailyRecord[]; targets: Targets; today: CivilDate; foodLog?: FoodLog }) {
   const food = day?.nutrition ?? null;
   const logged = food !== null;
   const hasTargets = targets.kcal !== null || targets.proteinG !== null;
-  const left = remainingOf(day, targets);
-  const idea = hasTargets ? suggest(left, 2) : null;
+  const kcalLeft = targets.kcal === null ? null : targets.kcal - (food?.kcal ?? 0);
+  const proteinLeft = targets.proteinG === null ? null : targets.proteinG - (food?.proteinG ?? 0);
+  const floor = fatFloorFor(days);
   return (
     <Card className="flex flex-col">
       <div className="px-4 pt-4 pb-4 flex-1 flex flex-col gap-3">
         <Head title={t('today.food.title')} icon={<Utensils size={14} className={DOMAIN.wellbeing.text} />} />
-        <div className="flex items-baseline gap-2">
-          <Value value={logged ? food!.kcal : null} unit={t('units.kcal')} size="md" />
-          {targets.kcal !== null && (
-            <span className="text-caption text-zinc-500">
-              {left.kcal! >= 0
-                ? t('today.food.left', { kcal: fmtNum(left.kcal, 0) })
-                : t('today.food.over', { kcal: fmtNum(-left.kcal!, 0) })}
-            </span>
-          )}
+        <div>
+          <div className="flex items-baseline gap-2">
+            <Value value={logged ? food!.kcal : null} unit={t('units.kcal')} size="md" />
+            {kcalLeft !== null && (
+              <span className="text-caption text-zinc-500">
+                {kcalLeft >= 0 ? t('today.food.left', { kcal: fmtNum(kcalLeft, 0) }) : t('today.food.over', { kcal: fmtNum(-kcalLeft, 0) })}
+              </span>
+            )}
+          </div>
+          {targets.kcal !== null && <Meter pct={Math.min(100, (100 * (food?.kcal ?? 0)) / targets.kcal)} color="var(--color-zinc-300)" className="mt-1.5" />}
         </div>
-        <div className="space-y-2">
-          <MacroBar label={t('food.macros.protein')} eaten={food?.proteinG} target={targets.proteinG} color={MACRO.protein} unit={t('units.grams')} />
-          <MacroBar label={t('food.macros.carbs')} eaten={food?.carbsG} target={targets.carbsG} color={MACRO.carbs} unit={t('units.grams')} />
-          <MacroBar label={t('food.macros.fat')} eaten={food?.fatG} target={targets.fatG} color={MACRO.fat} unit={t('units.grams')} />
-        </div>
-        {!hasTargets && <p className="text-caption text-zinc-500">{t('today.food.noTargets')}</p>}
-        {!logged && <p className="text-caption text-zinc-500">{t('today.food.nothing', { date: formatCivilLong(today) })}</p>}
-        {idea && (
+        {targets.proteinG !== null && (
           <div>
-            <p className="text-caption text-zinc-400 mb-1">{t('food.rest.ideas', { focus: idea.focus, grams: fmtNum(idea.focus === 'protein' ? left.proteinG : idea.focus === 'carbs' ? left.carbsG : left.fatG, 0) })}</p>
-            {idea.foods.map((f) => <FoodLine key={f.id} food={f} focus={idea.focus} />)}
+            <MacroBar label={t('food.macros.protein')} eaten={food?.proteinG} target={targets.proteinG} color={MACRO.protein} unit={t('units.grams')} />
+            <p className="text-caption text-zinc-300 tabular-nums mt-0.5">
+              {t('food.diary.leftOver', { over: proteinLeft! < 0 ? 'yes' : 'no', amount: fmtNum(Math.abs(proteinLeft!), 0), unit: 'g' })}
+            </p>
           </div>
         )}
+        {logged && (
+          <p className="text-note text-zinc-400 tabular-nums">
+            {rich('food.diary.carbsFat', {
+              c: (w) => <span style={{ color: MACRO.carbs }}>{w}</span>,
+              f: (w) => <span style={{ color: MACRO.fat }}>{w}</span>,
+              carbs: fmtNum(food!.carbsG, 0),
+              fat: fmtNum(food!.fatG, 0),
+              floor: floor === null ? 'none' : String(floor),
+              low: floor !== null && food!.fatG < floor ? 'yes' : 'no',
+            })}
+          </p>
+        )}
+        {!hasTargets && <p className="text-caption text-zinc-500">{t('today.food.noTargets')}</p>}
+        {!logged && <p className="text-caption text-zinc-500">{t('today.food.nothing', { date: formatCivilLong(today) })}</p>}
+        {foodLog && <SavedMeals foodLog={foodLog} date={today} forget={false} title={t('today.food.saved')} />}
       </div>
     </Card>
   );
@@ -266,7 +245,7 @@ export function WeightGoal({ days, targets, today }: { days: DailyRecord[]; targ
 }
 
 /** For the Training page: each muscle's week against its landmarks. */
-export function MuscleWeekRows({ week }: { week: MuscleWeek[] }) {
+export function MuscleWeekRows({ week, next = false }: { week: MuscleWeek[]; next?: boolean }) {
   const colour = { below: 'var(--color-zinc-600)', productive: 'var(--emerald-400)', high: 'var(--amber-400)', over: 'var(--rose-400)' } as const;
   return (
     <div className="space-y-2.5">
@@ -281,6 +260,11 @@ export function MuscleWeekRows({ week }: { week: MuscleWeek[] }) {
               </span>
             </div>
             <Meter pct={Math.min(100, (100 * w.sets) / (l.mrv * 1.2))} color={colour[w.zone]} className="mt-1" />
+            {next && (
+              <p className="text-note text-zinc-500 tabular-nums mt-0.5">
+                {t('training.muscleWeek.next', { sets: w.next, change: w.next > Math.round(w.sets) ? 'up' : w.next < Math.round(w.sets) ? 'down' : 'same' })}
+              </p>
+            )}
           </div>
         );
       })}

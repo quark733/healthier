@@ -6,7 +6,8 @@ import { addDays, todayCivilIn, type CivilDate } from '../src/lib/date';
 import type { DailyRecord } from '../src/types/health';
 import { readTargets } from '../src/pipeline/targets';
 import { latestMaintenance } from '../src/pipeline/eating';
-import { histories, markerFor, rangeFor, statusOf, type LabResult } from '../src/pipeline/bloodwork';
+import { histories, markerFor, parseLabText, rangeFor, statusOf, type LabResult } from '../src/pipeline/bloodwork';
+import { saveLabResults } from './labs-api';
 import { readCheckin, type Checkin } from '../src/pipeline/checkin';
 import { readMeasurement, bpSummary, waistSummary, type Measurement } from '../src/pipeline/measurements';
 import { readLogEntry, type LogEntry } from '../src/pipeline/healthLog';
@@ -336,6 +337,32 @@ function buildServer(deps: Deps, userId: string, scope: Scope): McpServer {
       'delete_food_entry',
       { description: 'Delete one food diary entry by its id (from get_food_log or log_meal).', inputSchema: { id: z.string().regex(/^\d+$/) } },
       async ({ id }) => text({ deleted: await deleteFoodEntry(deps.db, userId, id) }),
+    );
+
+    server.registerTool(
+      'add_blood_tests',
+      {
+        description:
+          "Add blood test results (e.g. read off the person's 1177 or lab report). One line per result: `date; name; value; unit; range`, e.g. `2026-10-07; P-Ferritin; 85; µg/L; 30-350`. Use the lab's own name for the test, with its prefix (P-, S-, B-), and its own range; a value under or over the measurable limit is written <0.5 or >90. A result with the same date and name replaces the one there. Returns what was saved and any lines it couldn't read.",
+        inputSchema: { lines: z.string().min(1).max(20000) },
+      },
+      async ({ lines }) => {
+        const { results, unread } = parseLabText(lines);
+        if (results.length) await saveLabResults(deps.db, userId, results);
+        return text({ saved: results.map((r) => ({ date: r.date, name: r.name, value: r.value, unit: r.unit, matched: markerFor(r.name)?.id ?? null })), unread });
+      },
+    );
+
+    server.registerTool(
+      'delete_blood_test',
+      {
+        description: 'Delete one blood test result, by its date and its name exactly as get_blood_tests shows it.',
+        inputSchema: { date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), name: z.string().min(1).max(200) },
+      },
+      async ({ date, name }) => {
+        const r = await deps.db.query('DELETE FROM user_lab_results WHERE user_id = $1 AND date = $2 AND name = $3', [userId, date, name]);
+        return text({ deleted: (r.rowCount ?? 0) > 0 });
+      },
     );
   }
 
