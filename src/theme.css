@@ -23,14 +23,17 @@
   --emerald-500: #10b981;
   --green-500: #22c55e;
   --lime-300: #bef264;
+  --lime-400: #a3e635;
   --teal-300: #5eead4;
   --teal-400: #2dd4bf;
   --teal-500: #14b8a6;
+  --sky-400: #38bdf8;
   --sky-500: #0ea5e9;
   --slate-400: #94a3b8;
   --indigo-400: #818cf8;
   --indigo-500: #6366f1;
   --violet-400: #a78bfa;
+  --purple-400: #c084fc;
   --purple-500: #a855f7;
   --pink-400: #f472b6;
   --rose-400: #fb7185;
@@ -73,6 +76,12 @@
   --stage-light: #818cf8;
   --stage-rem: #a78bfa;
   --stage-awake: #d8b48a;
+  /* Deep for words, such as a best night's score: a step lighter, so it reads on the dark cards. */
+  --stage-deep-ink: #7471f6;
+  /* The moon, clouds and stars in the Last night card's corner. */
+  --night-moon: #f5e19a;
+  --night-cloud: #e8edf5;
+  --night-star: #ffffff;
 
   /*
    * Glass. In dark a card is smoked glass, a dark tint with a light edge, and the panels and rules
@@ -81,6 +90,14 @@
    */
   --card: rgb(9 9 11 / 0.5);
   --card-edge: rgb(255 255 255 / 0.08);
+  /*
+   * The insights card's aurora: the pages' colours in three of its corners, as faint as the other
+   * cards' glows (.glow), so the insight cards' own glows inside it stay the brighter ones.
+   */
+  --insights-glow:
+    radial-gradient(55% 75% at 0% 0%, color-mix(in srgb, var(--indigo-400) 8%, transparent), color-mix(in srgb, var(--indigo-400) 3.2%, transparent) 40%, transparent 70%),
+    radial-gradient(45% 65% at 100% 0%, color-mix(in srgb, var(--emerald-400) 8%, transparent), color-mix(in srgb, var(--emerald-400) 3.2%, transparent) 40%, transparent 70%),
+    radial-gradient(70% 55% at 60% 105%, color-mix(in srgb, var(--rose-400) 8%, transparent), color-mix(in srgb, var(--rose-400) 3.2%, transparent) 40%, transparent 70%);
   /* A panel set into a card, and one that stands out a step more: the battery's score, a lab's plot. */
   --panel: rgb(255 255 255 / 0.04);
   --panel-raised: rgb(255 255 255 / 0.07);
@@ -190,6 +207,7 @@
   --color-rose-900: var(--color-rose-100);
   --color-violet-300: var(--color-violet-700);
   --color-violet-400: var(--color-violet-600);
+  --color-purple-400: var(--color-purple-700);
   --color-indigo-400: var(--color-indigo-600);
   --color-emerald-300: var(--color-emerald-800);
   --color-emerald-400: var(--color-emerald-700);
@@ -214,14 +232,17 @@
   --emerald-500: #047857;
   --green-500: #15803d;
   --lime-300: #4d7c0f;
+  --lime-400: #4d7c0f;
   --teal-300: #0f766e;
   --teal-400: #0f766e;
   --teal-500: #0f766e;
+  --sky-400: #0284c7;
   --sky-500: #0369a1;
   --slate-400: #64748b;
   --indigo-400: #4f46e5;
   --indigo-500: #4338ca;
   --violet-400: #7c3aed;
+  --purple-400: #7e22ce;
   --purple-500: #9333ea;
   --pink-400: #be185d;
   --rose-400: #be123c;
@@ -257,10 +278,20 @@
   --stage-light: #4f46e5;
   --stage-rem: #7c3aed;
   --stage-awake: #8a6a3f;
+  --stage-deep-ink: var(--stage-deep);
+  /* On white, the moon is a deeper yellow, the clouds a pale indigo and the stars a soft indigo. */
+  --night-moon: #fcd34d;
+  --night-cloud: #e0e7ff;
+  --night-star: #a5b4fc;
 
   /* Plain white cards with a hairline edge; panels and rules are a shade of grey on them. */
   --card: #ffffff;
   --card-edge: rgb(0 0 0 / 0.06);
+  /* The aurora faint here too, a touch stronger than dark's, since colour washes out on white. */
+  --insights-glow:
+    radial-gradient(55% 75% at 0% 0%, color-mix(in srgb, var(--indigo-400) 10%, transparent), color-mix(in srgb, var(--indigo-400) 4%, transparent) 40%, transparent 70%),
+    radial-gradient(45% 65% at 100% 0%, color-mix(in srgb, var(--emerald-400) 10%, transparent), color-mix(in srgb, var(--emerald-400) 4%, transparent) 40%, transparent 70%),
+    radial-gradient(70% 55% at 60% 105%, color-mix(in srgb, var(--rose-400) 10%, transparent), color-mix(in srgb, var(--rose-400) 4%, transparent) 40%, transparent 70%);
   --panel: rgb(0 0 0 / 0.03);
   --panel-raised: rgb(0 0 0 / 0.05);
   --faint: rgb(0 0 0 / 0.07);
@@ -298,4 +329,96 @@ body::before {
 .bg-card {
   -webkit-backdrop-filter: var(--frost);
   backdrop-filter: var(--frost);
+}
+
+/*
+ * A faint glow in a card's own colour (--glow), in the dark theme only: from the card's top right,
+ * or, for a score, around the dot in its pill (--glow-x and --glow-y, set where the dot sits). The
+ * light theme leaves its cards plain.
+ */
+.glow {
+  background-image: radial-gradient(100% 60% at 100% 0%,
+    color-mix(in srgb, var(--glow) 8%, transparent),
+    color-mix(in srgb, var(--glow) 3.2%, transparent) 40%,
+    transparent);
+}
+/*
+ * A score's glow is a status, so it's nearly as strong as an insight card's glow (a little fainter) and
+ * eases out the same way, reaching a little further than an insight's (half its card's height,
+ * 86–99px) since it's all around the dot: an oval centred on it, wider than tall, the same size
+ * whatever the card's shape.
+ */
+.glow-score {
+  --glow-size: 235px 140px;
+  background-image: radial-gradient(var(--glow-size) at var(--glow-x, 0px) var(--glow-y, 0px),
+    color-mix(in srgb, var(--glow) 23%, transparent),
+    color-mix(in srgb, var(--glow) 14.3%, transparent) 22%,
+    color-mix(in srgb, var(--glow) 6.9%, transparent) 45%,
+    color-mix(in srgb, var(--glow) 2.3%, transparent) 70%,
+    transparent);
+}
+/* On wider screens the cards and their type are bigger, so the glow reaches further to look the same. */
+@media (min-width: 48rem) {
+  .glow-score {
+    --glow-size: 330px 195px;
+  }
+}
+:root[data-theme='light'] :is(.glow, .glow-score) {
+  background-image: none;
+}
+
+/* A star that very slowly, faintly dims and brightens (the Last night card's sky); still when motion is reduced. */
+.twinkle {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: twinkle 8s ease-in-out infinite;
+}
+@keyframes twinkle {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.65; transform: scale(0.9); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .twinkle { animation: none; }
+}
+
+/*
+ * A status pill is tinted and edged in its status's colour (--pill), the colour its glow is, as softly
+ * as the glow around it (.glow-score), and names the status in a lighter shade of its ink (--pill-ink),
+ * the status's colour for words. The light theme has no glows, so there the tint is fainter and the
+ * word a shade darker than its ink.
+ */
+.status-pill {
+  background-color: color-mix(in srgb, var(--pill) 13%, rgb(9 9 11 / 0.6));
+  border-color: color-mix(in srgb, var(--pill) 32%, transparent);
+}
+.status-pill-word {
+  color: color-mix(in srgb, var(--pill-ink) 70%, white);
+}
+:root[data-theme='light'] .status-pill {
+  background-color: color-mix(in srgb, var(--pill) 8%, white);
+  border-color: color-mix(in srgb, var(--pill) 30%, transparent);
+}
+:root[data-theme='light'] .status-pill-word {
+  color: color-mix(in srgb, var(--pill-ink) 85%, black);
+}
+
+/*
+ * The chart chips under an "over time" section: the picked one tinted and edged in its page's colour
+ * (--chip). In the dark theme they're smoked glass like the cards, and the picked one glows softly.
+ */
+.chip[aria-pressed='true'] {
+  background-color: color-mix(in srgb, var(--chip) 9%, transparent);
+  border-color: color-mix(in srgb, var(--chip) 35%, transparent);
+}
+:root:not([data-theme='light']) .chip {
+  background-color: var(--card);
+  border-color: var(--card-edge);
+  -webkit-backdrop-filter: var(--frost);
+  backdrop-filter: var(--frost);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.05);
+}
+:root:not([data-theme='light']) .chip[aria-pressed='true'] {
+  background-color: color-mix(in srgb, var(--chip) 9%, var(--card));
+  border-color: color-mix(in srgb, var(--chip) 30%, transparent);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.06), 0 0 14px color-mix(in srgb, var(--chip) 7%, transparent);
 }

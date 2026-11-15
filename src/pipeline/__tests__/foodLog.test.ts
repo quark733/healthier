@@ -52,16 +52,22 @@ test('totals and meals in meal order', () => {
 
 test('a diary day replaces the diary app’s food; other days keep theirs', () => {
   const { entries } = parseFoodImport(PASTE);
-  const app = { ...emptyRecord('2026-01-05' as CivilDate), caloriesKcal: 2500, proteinG: 150, carbsG: 300, fatG: 80, present: ['nutrition-log'], sourceByType: { 'nutrition-log': 'mfp' } };
-  const other = { ...emptyRecord('2026-01-04' as CivilDate), caloriesKcal: 2000, proteinG: 120, carbsG: 250, fatG: 70 };
+  const food = (kcal: number) => ({ kcal, proteinG: 100, carbsG: 250, fatG: 70, fibreG: 25, meals: [], mealKinds: [] });
+  const app = { ...emptyRecord('2026-01-05' as CivilDate), nutrition: food(2500), present: ['nutrition-log'], sourceByType: { 'nutrition-log': 'mfp' } };
+  const other = { ...emptyRecord('2026-01-04' as CivilDate), nutrition: food(2000) };
   const empty = emptyRecord('2026-01-06' as CivilDate);
   const [a, b, c] = applyFoodLog([app, other, empty], entries);
-  assert.equal(a.caloriesKcal, 807);
-  assert.equal(a.proteinG, 41);
+  assert.equal(a.nutrition?.kcal, 807);
+  assert.equal(a.nutrition?.proteinG, 41);
+  assert.equal(a.nutrition?.fibreG, null);
+  // Breakfast at 8 and dinner at 7 in the evening: a whole day, so it counts toward averages.
+  assert.deepEqual(a.nutrition?.meals.map((m) => [m.minutes, m.kcal]), [[480, 417], [1140, 390]]);
+  assert.deepEqual(a.nutrition?.mealKinds, ['breakfast', 'dinner']);
   assert.equal(a.sourceByType['nutrition-log'], DIARY_SOURCE);
   assert.deepEqual(a.present, ['nutrition-log']);
   assert.equal(b, other);
-  assert.equal(c.caloriesKcal, 118);
+  assert.equal(c.nutrition?.kcal, 118);
+  assert.deepEqual(c.nutrition?.mealKinds, []);
   assert.ok(c.present.includes('nutrition-log'));
 });
 
@@ -82,7 +88,10 @@ test('a saved meal is read, logged on a day, and scaled by portion', async () =>
 
 test('the week average counts only the logged days among the last seven', async () => {
   const { weekAverage } = await import('../foodLog');
-  const day = (date: string, kcal?: number, protein?: number) => ({ ...emptyRecord(date as CivilDate), caloriesKcal: kcal, proteinG: protein });
+  const day = (date: string, kcal?: number, protein?: number) => ({
+    ...emptyRecord(date as CivilDate),
+    nutrition: kcal === undefined ? null : { kcal, proteinG: protein ?? 0, carbsG: 0, fatG: 0, fibreG: null, meals: [], mealKinds: [] },
+  });
   const days = [day('2026-01-01', 9000, 900), day('2026-01-03', 3000, 200), day('2026-01-05'), day('2026-01-08', 2000, 100)];
   assert.deepEqual(weekAverage(days, '2026-01-08' as CivilDate), { kcal: 2500, protein: 150, days: 2 });
   assert.equal(weekAverage(days, '2025-12-01' as CivilDate), null);

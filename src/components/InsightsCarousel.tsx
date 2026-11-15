@@ -11,6 +11,7 @@ const DOMAIN_LABELS: Record<string, MessageKey> = {
   cardio: 'insights.carousel.domains.cardio',
   sleep: 'insights.carousel.domains.sleep',
   body: 'insights.carousel.domains.body',
+  nutrition: 'insights.carousel.domains.nutrition',
   cycle: 'insights.carousel.domains.cycle',
   data: 'insights.carousel.domains.data',
   movement: 'insights.carousel.domains.movement',
@@ -25,21 +26,23 @@ const DOMAIN_ICONS: Record<string, React.ReactNode> = {
   movement: <Footprints size={14} />,
 };
 
-/** A card's glow: its tone strongest in the far corner, fading out before it reaches the words. */
-const glow = (colour: string, strong: number, soft: number) =>
-  `radial-gradient(130% 130% at 100% 100%, ${tint(colour, strong)} 0%, ${tint(colour, soft)} 42%, transparent 68%)`;
+/** A card's glow: its tone strongest at the bottom of its right half, easing out by halfway up the card. */
+const glow = (colour: string, strong: number) => {
+  const at = (share: number) => tint(colour, Math.round(strong * share * 10) / 10);
+  return `radial-gradient(80% 50% at 75% 100%, ${at(1)} 0%, ${at(0.62)} 22%, ${at(0.3)} 45%, ${at(0.1)} 70%, transparent 100%)`;
+};
 
 const TONE_STYLES: Record<string, { bg: string, border: string }> = {
   good: {
-    bg: glow('var(--glow-good)', 34, 10),
+    bg: glow('var(--glow-good)', 34),
     border: tint('var(--glow-good)', 16),
   },
   watch: {
-    bg: glow('var(--glow-watch)', 32, 9),
+    bg: glow('var(--glow-watch)', 32),
     border: tint('var(--glow-watch)', 15),
   },
   neutral: {
-    bg: glow('var(--glow-neutral)', 20, 6),
+    bg: glow('var(--glow-neutral)', 20),
     border: tint('var(--glow-neutral)', 15),
   },
 };
@@ -49,6 +52,7 @@ const DOMAIN_COLORS: Record<string, string> = {
   cardio: 'var(--rose-400)',
   sleep: 'var(--indigo-400)',
   body: 'var(--teal-300)',
+  nutrition: 'var(--purple-400)',
   cycle: 'var(--pink-400)',
   data: 'var(--color-zinc-400)',
   movement: 'var(--emerald-400)',
@@ -104,6 +108,7 @@ const PAGE_COPY: Record<InsightPage, { title: MessageKey; description: MessageKe
   sleep: { title: 'insights.carousel.pages.sleep.title', description: 'insights.carousel.pages.sleep.description' },
   vitals: { title: 'insights.carousel.pages.vitals.title', description: 'insights.carousel.pages.vitals.description' },
   body: { title: 'insights.carousel.pages.body.title', description: 'insights.carousel.pages.body.description' },
+  nutrition: { title: 'insights.carousel.pages.nutrition.title', description: 'insights.carousel.pages.nutrition.description' },
   cycle: { title: 'insights.carousel.pages.cycle.title', description: 'insights.carousel.pages.cycle.description', disclaimer: 'cycle.disclaimer' },
 };
 
@@ -177,7 +182,7 @@ export function InsightsCarousel({ observations, page }: { observations: Observa
 
   return (
     <div className="h-full flex flex-col">
-      <div className="bg-card border border-zinc-800/80 rounded-[20px] pt-5 pb-4 md:pt-6 md:pb-5 overflow-hidden w-full relative flex-1 flex flex-col">
+      <div className="bg-card border border-zinc-800/80 rounded-[20px] pt-5 pb-4 md:pt-6 md:pb-5 overflow-hidden w-full relative flex-1 flex flex-col" style={{ backgroundImage: 'var(--insights-glow)' }}>
         <div className="flex justify-between items-center md:items-start gap-3 md:gap-6 px-4 md:px-6 pb-4">
           <div>
             <h2 className="card-title-detail text-zinc-50">{t(copy?.title ?? 'insights.carousel.title')}</h2>

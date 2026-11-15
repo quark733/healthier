@@ -93,7 +93,7 @@ function battery(ctx: InsightContext, add: Add): void {
   if (rNow.score < COAST_BELOW) {
     // Escalates with the run of low mornings, counted on the mornings before this one.
     const lowDays = rPrev.score !== null && rPrev.score < COAST_BELOW
-      ? (readiness(beforeLatestMorning(prevDays), ctx.goals.sleepNeed).score ?? 99) < COAST_BELOW ? 3 : 2
+      ? (readiness(beforeLatestMorning(prevDays), ctx.goals.sleepNeed, ctx.judged).score ?? 99) < COAST_BELOW ? 3 : 2
       : 1;
     const why = topNeg && topNeg.contribution < 0 ? reason(topNeg, ctx, 'because') : null;
     add({
@@ -107,7 +107,7 @@ function battery(ctx: InsightContext, add: Add): void {
     });
   } else if (
     rNow.score >= CHARGED && topPos !== null && topPos.contribution > 0 &&
-    entered(ctx.days, (w) => (readiness(w, ctx.goals.sleepNeed).score ?? 0) >= CHARGED)
+    entered(ctx.days, (w) => (readiness(w, ctx.goals.sleepNeed, ctx.judged).score ?? 0) >= CHARGED)
   ) {
     const why = rNow.parts.filter((p) => p.contribution > 0).slice(0, 2).map((p) => reason(p, ctx, 'statement'));
     add({
@@ -294,12 +294,12 @@ function labsReminders(ctx: InsightContext, add: Add): void {
   if (ctx.intraday) {
     const intraday = ctx.intraday;
     const sick = illnessDates(days, ctx.judged);
-    const dip = dipping(days, intraday, sick);
+    const dip = dipping(days, intraday, sick, ctx.age);
     if (dip.status === 'pattern') {
       add({
         id: 'labs-dip-pattern', domain: 'cardio', page: 'today', kind: 'alert', tone: 'watch',
         importance: 91, topic: 'labs-dip', family: 'labs', today: 'as-news',
-        news: entered(days, (w: DailyRecord[]) => dipping(w, intraday, sick).status === 'pattern') || monthStart,
+        news: entered(days, (w: DailyRecord[]) => dipping(w, intraday, sick, ctx.age).status === 'pattern') || monthStart,
         title: t('insights.today.labsDipPattern.title'),
         text: t('insights.today.labsDipPattern.text', {
           higherAtNight: dip.riser ? 'yes' : 'no',

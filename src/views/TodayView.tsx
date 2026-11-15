@@ -91,7 +91,6 @@ export function TodayView({
   const battery = {
     score: s.readiness.score,
     parts: s.readiness.parts,
-    confidence: s.readiness.confidence,
     label: s.readiness.label,
     missing: s.readiness.missing,
     calibrating: s.readiness.calibrating,
@@ -126,6 +125,7 @@ export function TodayView({
           <Tile
             label={t('today.sleep.tile')}
             icon={<Moon size={14} className={DOMAIN.sleep.text} />}
+            glow={DOMAIN.sleep.hex}
             value={<Value value={sl ? fmtDuration(sl.minutesAsleep) : null} size="md" />}
             pill={sl && <BandPill c={sleepCmp} />}
             chart={sl && <Spark series={sleepSeries.slice(-21)} color={DOMAIN.sleep.hex} height={28} baseline={usual(sleepCmp)} />}
@@ -140,6 +140,7 @@ export function TodayView({
           <Tile
             label={movementIsToday ? t('today.activity.today') : t('today.activity.latest')}
             icon={<Footprints size={14} className={DOMAIN.movement.text} />}
+            glow={DOMAIN.movement.hex}
             value={<Value value={mv?.steps ?? null} size="md" unit={t('units.steps')} />}
             pill={mv && <BandPill c={stepsCmp} partial={movementIsToday} />}
             chart={mv && (
@@ -161,6 +162,7 @@ export function TodayView({
           <Tile
             label={t('today.heart.label')}
             icon={<Heart size={14} className={DOMAIN.cardio.text} />}
+            glow={DOMAIN.cardio.hex}
             value={<Value value={rhrNow?.value ?? null} size="md" unit={t('units.bpm')} />}
             pill={rhrNow && <BandPill c={rhrNow} cycle={rhrCycle} />}
             chart={rhrNow && <Spark series={rhrSeries.slice(-21)} color={DOMAIN.cardio.hex} height={28} baseline={usual(rhrNow)} />}
@@ -174,6 +176,7 @@ export function TodayView({
           <Tile
             label={t('today.breathing.label')}
             icon={<Wind size={14} style={{ color: BREATHING_HEX }} />}
+            glow={BREATHING_HEX}
             value={<Value value={respNow?.value ?? null} size="md" digits={1} unit={t('units.perMinute')} />}
             pill={respNow && <BandPill c={respNow} />}
             chart={respNow && <Spark series={respSeries.slice(-21)} color={BREATHING_HEX} height={28} baseline={usual(respNow)} />}
@@ -188,7 +191,7 @@ export function TodayView({
 
         {/* Side by side, the column runs as tall as the battery card, its three cards sharing what's left over. */}
         <div className="hidden md:flex flex-col lg:col-span-4 gap-3 lg:self-stretch">
-          <Card className="flex flex-col grow">
+          <Card className="flex flex-col grow" glow={DOMAIN.sleep.hex}>
             <div className="px-4 pt-4 pb-3 flex-1 flex flex-col">
               <div className="flex items-start justify-between">
                 <span className="card-title-glance text-zinc-500">{t('today.sleep.title')}</span>
@@ -228,7 +231,7 @@ export function TodayView({
             </div>
           </Card>
 
-          <Card className="flex flex-col grow">
+          <Card className="flex flex-col grow" glow={DOMAIN.movement.hex}>
             <div className="px-4 pt-4 pb-3 flex-1 flex flex-col">
               <div className="flex items-start justify-between">
                 <span className="card-title-glance text-zinc-500">{movementIsToday ? t('today.activity.today') : t('today.activity.latest')}</span>
@@ -271,7 +274,7 @@ export function TodayView({
             </div>
           </Card>
 
-          <Card className="flex flex-col grow">
+          <Card className="flex flex-col grow" glow={DOMAIN.cardio.hex}>
             <div className="px-4 pt-4 pb-3 flex-1 flex flex-col">
               <div className="flex items-start justify-between">
                 <span className="card-title-glance text-zinc-500">{t('today.vitals.title')}</span>

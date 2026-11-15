@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { addDays, todayCivilIn, type CivilDate } from '../src/lib/date';
 import type { DailyRecord } from '../src/types/health';
 import { readTargets } from '../src/pipeline/targets';
-import { estimateExpenditure } from '../src/pipeline/expenditure';
+import { latestMaintenance } from '../src/pipeline/eating';
 import { histories, markerFor, rangeFor, statusOf, type LabResult } from '../src/pipeline/bloodwork';
 import { readCheckin, type Checkin } from '../src/pipeline/checkin';
 import { readMeasurement, bpSummary, waistSummary, type Measurement } from '../src/pipeline/measurements';
@@ -68,10 +68,11 @@ function digest(d: DailyRecord) {
   put('totalKcal', d.totalKcal);
   put('weightKg', round(d.weightKg, 2));
   put('bodyFatPct', round(d.bodyFatPct, 1));
-  put('eatenKcal', d.caloriesKcal);
-  put('proteinG', d.proteinG);
-  put('carbsG', d.carbsG);
-  put('fatG', d.fatG);
+  put('eatenKcal', d.nutrition?.kcal);
+  put('proteinG', d.nutrition?.proteinG);
+  put('carbsG', d.nutrition?.carbsG);
+  put('fatG', d.nutrition?.fatG);
+  put('fibreG', d.nutrition?.fibreG);
   if (d.sleep) put('sleep', { minutesAsleep: d.sleep.minutesAsleep, bedtime: d.sleep.bedtimeIso, wake: d.sleep.wakeIso });
   put('restingHr', d.restingHr);
   put('hrvMs', round(d.hrv, 1));
@@ -119,7 +120,7 @@ function buildServer(deps: Deps, userId: string, scope: Scope): McpServer {
     'get_overview',
     {
       description:
-        "The person's current picture in one call: today's date, targets (food and weight goal), weight trend and the burn worked out from food and weight, the last 7 days' averages (food, steps, sleep, resting heart rate, HRV), training this week against the usual, sets per muscle, this morning's check-in, home blood pressure and waist, and blood test results outside the range or short of a goal.",
+        "The person's current picture in one call: today's date, targets (food and weight goal), weight trend and maintenance worked out from fully logged days and the weight (kcal, give or take margin), the last 7 days' averages (food, steps, sleep, resting heart rate, HRV), training this week against the usual, sets per muscle, this morning's check-in, home blood pressure and waist, and blood test results outside the range or short of a goal.",
       inputSchema: {},
     },
     async () => {
@@ -142,10 +143,10 @@ function buildServer(deps: Deps, userId: string, scope: Scope): McpServer {
         gender: user?.gender ?? null,
         targets,
         latestWeightKg: [...days].reverse().find((d) => d.weightKg !== null)?.weightKg ?? null,
-        expenditure: estimateExpenditure(days, today),
+        maintenance: latestMaintenance(days, today),
         last7Days: {
-          eatenKcal: avg((d) => d.caloriesKcal),
-          proteinG: avg((d) => d.proteinG),
+          eatenKcal: avg((d) => d.nutrition?.kcal),
+          proteinG: avg((d) => d.nutrition?.proteinG),
           steps: avg((d) => d.steps),
           sleepMinutes: avg((d) => d.sleep?.minutesAsleep),
           restingHr: avg((d) => d.restingHr),

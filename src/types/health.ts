@@ -27,9 +27,9 @@ export type RecordingMethod =
   | 'UNKNOWN';
 
 export interface SourceRef {
-  /** Stable key we can group by, e.g. "FITBIT:Google Fitbit Air". */
+  /** Stable key we can group by, e.g. "FITBIT:Fitbit Air". */
   id: string;
-  /** Human label, e.g. "Google Fitbit Air" or "Samsung Health". */
+  /** Human label, e.g. "Fitbit Air" or "Samsung Health". */
   label: string;
   platform: Platform;
   method: RecordingMethod;
@@ -188,10 +188,8 @@ export interface DailyRecord {
   // wellbeing
   hydrationL: number | null;
   bloodGlucoseMgDl: number | null;
-  caloriesKcal?: number;
-  proteinG?: number;
-  carbsG?: number;
-  fatG?: number;
+  /** What was logged as eaten, from one food-logging source (pipeline/nutrition.ts); null on days with no log. */
+  nutrition: DayNutrition | null;
 
   /** Which dataTypes contributed to this row, for the coverage matrix. */
   present: string[];
@@ -211,6 +209,36 @@ export interface DailyRecord {
    * stored days are read.
    */
   fills?: Partial<Record<keyof DailyRecord, string>>;
+}
+
+export type MealKind = 'breakfast' | 'lunch' | 'dinner';
+
+/**
+ * One meal: the food logged together, by its meal type or within the same stretch of the day
+ * (pipeline/nutrition.ts groups the entries).
+ */
+export interface Meal {
+  /** Minutes past midnight, local, of its first entry. */
+  minutes: number;
+  kcal: number;
+  proteinG: number;
+  carbsG: number;
+  fatG: number;
+}
+
+/** A day's food, as logged in Google Health or an app that writes to it. */
+export interface DayNutrition {
+  kcal: number;
+  proteinG: number;
+  /** Total carbohydrate. */
+  carbsG: number;
+  fatG: number;
+  /** Null when the logging app doesn't record fibre. */
+  fibreG: number | null;
+  /** The day's meals, earliest first. */
+  meals: Meal[];
+  /** The main meals the log names (breakfast, lunch, dinner), for judging whether the day is complete. */
+  mealKinds: MealKind[];
 }
 
 /** Intraday samples, fetched separately because they're high-volume. */

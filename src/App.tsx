@@ -261,7 +261,7 @@ export default function App() {
             {view === 'sleep' && <SleepView data={health.data} intraday={intradayDays} clock={demo ? DEMO_CLOCK : undefined} />}
             {view === 'vitals' && <VitalsView data={health.data} intraday={intradayDays} clock={demo ? DEMO_CLOCK : undefined} />}
             {view === 'body' && <BodyView data={health.data} gender={gender} onGender={chooseGender} intraday={intradayDays} clock={demo ? DEMO_CLOCK : undefined} />}
-            {view === 'nutrition' && <NutritionView data={fed!} foodLog={foodLog} />}
+            {view === 'nutrition' && <NutritionView data={fed!} foodLog={foodLog} intraday={intradayDays} clock={demo ? DEMO_CLOCK : undefined} />}
             {view === 'training' && today && <TrainingView demo={demo} today={today} notice={strengthNotice} days={health.data?.days} />}
             {view === 'blood' && today && <BloodView demo={demo} today={today} gender={gender} />}
             {view === 'cycle' && <CycleView data={health.data} intraday={intradayDays} clock={demo ? DEMO_CLOCK : undefined} />}
@@ -413,7 +413,10 @@ const EDGE = 48;
  * sideways on its own, by swipe, trackpad or mouse wheel, and an edge with pages past it shows a
  * small arrow that slides the row along.
  */
-function PageNav({ view, setView }: { view: View; setView: (view: View) => void }) {
+function PageNav({ view, setView }: {
+  view: View;
+  setView: (view: View) => void;
+}) {
   const tracking = useCycleTracking();
   // Turning tracking off on the Settings page takes the Cycle page away; never leave anyone on it.
   useEffect(() => {
@@ -489,7 +492,7 @@ function PageNav({ view, setView }: { view: View; setView: (view: View) => void 
         />
         <NavButton
           active={view === 'nutrition'} onClick={() => setView('nutrition')}
-          icon={<Utensils size={14} />} label={t('app.nav.nutrition')} color={DOMAIN.wellbeing.text}
+          icon={<Utensils size={14} />} label={t('app.nav.nutrition')} color={DOMAIN.nutrition.text}
         />
         <NavButton
           active={view === 'training'} onClick={() => setView('training')}

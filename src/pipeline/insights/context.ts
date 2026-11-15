@@ -1,11 +1,12 @@
 import type { CivilDate } from '../../lib/date';
 import { formatDuration } from '../../i18n/format';
+import type { SleepNorms } from '../sleep';
 import type { DailyRecord, HealthDataset, SleepSession } from '../../types/health';
 import type { HistoryAnswers } from '../history';
 import { offTogether, type IntradayDays } from '../labs';
 import type { ProfileFacts } from '../registry';
 import {
-  BASELINE_DAYS, isRecent, loadRatio, readiness, series, sleepDebt, sleepNeedFor, stats, values,
+  BASELINE_DAYS, isRecent, loadRatio, readiness, series, sleepDebt, sleepNorms, stats, values,
   type Point, type Readiness,
 } from '../derive';
 import { DEFAULT_GOALS, type Goals } from '../goals';
@@ -71,6 +72,8 @@ export interface InsightContext {
    */
   need: number;
   needH: string;
+  /** What every night's sleep score is held to: the need above and the person's usual deep + REM (sleepNorms). */
+  norms: SleepNorms;
   stepsSeries: Point[];
   /** Today's steps are still counting, so whole-day comparisons read finished days only. */
   doneSteps: Point[];
@@ -109,18 +112,20 @@ export function buildContext(ds: InsightDataset, now: Date, extras?: InsightOpti
   const minutesNow = wallClock(now, extras?.timeZone);
 
   const goals = extras?.goals ?? DEFAULT_GOALS;
-  const need = sleepNeedFor(days, goals.sleepNeed);
+  const norms = sleepNorms(days, goals.sleepNeed);
+  const need = norms.need;
   const stepsSeries = series(days, (d) => d.steps);
   const doneSteps = stepsSeries.slice(0, -1);
   const lastNightDay = [...days].reverse().find((d) => d.sleep) ?? null;
 
-  const rNow = readiness(days, goals.sleepNeed);
-  const prevDays = beforeLatestMorning(days);
   const cycle = extras?.cycle ?? null;
   const judged = cycle?.judged ?? null;
-  const rPrev = readiness(prevDays, goals.sleepNeed);
-  // Several signals off on the latest morning, by the radar's own test (offTogether). The battery's
-  // score stays the person's own; this is judged with the cycle in mind too, while tracking is on.
+  // With cycle tracking on, the battery softens a penalty the cycle explains (see readiness).
+  const rNow = readiness(days, goals.sleepNeed, judged);
+  const prevDays = beforeLatestMorning(days);
+  const rPrev = readiness(prevDays, goals.sleepNeed, judged);
+  // Several signals off on the latest morning, by the radar's own test (offTogether), judged with
+  // the cycle in mind too, while tracking is on.
   const offOnLatestMorning = (rows: DailyRecord[]) => {
     const i = beforeLatestMorning(rows).length;
     return i < rows.length && isRecent(rows[i].date, rows[rows.length - 1].date) && offTogether(rows, i, judged);
@@ -144,6 +149,7 @@ export function buildContext(ds: InsightDataset, now: Date, extras?: InsightOpti
     goals,
     need,
     needH: formatDuration(need),
+    norms,
     stepsSeries,
     doneSteps,
     stepMedian: stats(values(doneSteps.slice(-BASELINE_DAYS)))?.median ?? null,

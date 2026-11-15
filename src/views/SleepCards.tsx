@@ -3,54 +3,66 @@ import { t, type MessageKey, type Values } from '../i18n';
 import { rich } from '../i18n/react';
 import { formatCivilLong, formatCivilRange, formatClock, formatFixed, formatHours, weekdayLetter, weekdayShort } from '../i18n/format';
 import { bedtimeConsistency, type PeriodShift, type SleepDebt } from '../pipeline/derive';
-import { scoreSleep } from '../pipeline/sleep';
+import { scoreSleep, type SleepNorms } from '../pipeline/sleep';
 import { Card, CardHead, DURATION_UNIT, Delta, Row, fmtDuration, tint, withUnits } from '../ui/primitives';
 import type { DailyRecord, SleepSession } from '../types/health';
 import { Stat, statUnit } from './ActivityCards';
 
+/** A four-pointed star, centred on (x, y), `r` from the centre to each point. */
+const sparkle = (x: number, y: number, r: number) =>
+  `M${x} ${y - r}Q${x} ${y} ${x + r} ${y}Q${x} ${y} ${x} ${y + r}Q${x} ${y} ${x - r} ${y}Q${x} ${y} ${x} ${y - r}Z`;
+
+/**
+ * A crescent moon with a cloud and stars, beside the night's length on the Last night card: decoration
+ * only, in its own colours (--night-*). The stars twinkle very slowly and faintly, one after another,
+ * unless motion is reduced.
+ */
+export function NightSky({ className = '' }: { className?: string }) {
+  // Spread over the sky beside and above the moon, never below it. Those above the drawing's box reach
+  // up toward the top of the card, right of its title, so the drawing lets them show outside its box.
+  const stars: [number, number, number][] = [
+    [-18, -26, 4], [62, -18, 6], [104, -36, 5], [8, 20, 5], [108, 14, 7],
+  ];
+  return (
+    <svg viewBox="0 0 120 110" aria-hidden="true" className={`pointer-events-none overflow-visible ${className}`}>
+      {/* The moon: a circle with a smaller one taken out of its right side. */}
+      <path d="M64.25 14.25A38 38 0 1 0 92.75 71.25A32 32 0 1 1 64.25 14.25Z" className="fill-(--night-moon)" />
+      {stars.map(([x, y, r], i) => (
+        <path key={i} d={sparkle(x, y, r)} className="twinkle fill-(--night-star)" style={{ animationDelay: `${i * 1.6}s` }} />
+      ))}
+      {/* One cloud across the foot of the moon, a little see-through, faded as a whole so its puffs don't show their overlaps. */}
+      <g className="fill-(--night-cloud)" opacity={0.8}>
+        <circle cx={42} cy={86} r={9} />
+        <circle cx={55} cy={78} r={13} />
+        <circle cx={69} cy={85} r={8} />
+        <rect x={28} y={84} width={52} height={10} rx={5} />
+      </g>
+    </svg>
+  );
+}
+
+type Stage = 'deep' | 'rem' | 'light' | 'awake';
+
+/**
+ * A night's score tier, in the Sleep page's own stage colours rather than green to red: deep for
+ * the best nights and awake for the worst. `dotColor` is for the pill and the card's glow, and
+ * `pillInk` for the pill's word; there a good night is light's colour and a fair one REM's. `ink` is
+ * for the week's scores, where good is REM and fair is light. Deep's words are a step lighter so
+ * they read on dark. The page's other verdicts keep their green-to-red colours.
+ */
 export function getScoreTier(total: number) {
-  if (total >= 85) {
-    return {
-      name: t('sleep.night.score.tiers.excellent'),
-      color: "var(--emerald-500)",
-      dotColor: "var(--green-500)",
-      bg: "bg-emerald-500/10",
-      text: "text-emerald-400",
-      border: "border-emerald-500/30",
-      glow: `0 0 10px ${tint('var(--green-500)', 60)}`,
-    };
-  }
-  if (total >= 70) {
-    return {
-      name: t('sleep.night.score.tiers.good'),
-      color: "var(--indigo-400)",
-      dotColor: "var(--indigo-400)",
-      bg: "bg-indigo-500/10",
-      text: "text-indigo-400",
-      border: "border-indigo-500/30",
-      glow: `0 0 10px ${tint('var(--indigo-400)', 60)}`,
-    };
-  }
-  if (total >= 50) {
-    return {
-      name: t('sleep.night.score.tiers.fair'),
-      color: "var(--amber-500)",
-      dotColor: "var(--amber-400)",
-      bg: "bg-amber-500/10",
-      text: "text-amber-400",
-      border: "border-amber-500/30",
-      glow: `0 0 10px ${tint('var(--amber-500)', 60)}`,
-    };
-  }
-  return {
-    name: t('sleep.night.score.tiers.poor'),
-    color: "var(--rose-500)",
-    dotColor: "var(--red-500)",
-    bg: "bg-rose-500/10",
-    text: "text-rose-400",
-    border: "border-rose-500/30",
-    glow: `0 0 10px ${tint('var(--rose-500)', 60)}`,
-  };
+  const inkOf = (stage: Stage) => (stage === 'deep' ? 'var(--stage-deep-ink)' : `var(--stage-${stage})`);
+  const tier = (name: MessageKey, mark: Stage, word: Stage) => ({
+    name: t(name),
+    dotColor: `var(--stage-${mark})`,
+    pillInk: inkOf(mark),
+    ink: inkOf(word),
+    glow: `0 0 10px ${tint(`var(--stage-${mark})`, 45)}`,
+  });
+  if (total >= 85) return tier('sleep.night.score.tiers.excellent', 'deep', 'deep');
+  if (total >= 70) return tier('sleep.night.score.tiers.good', 'light', 'rem');
+  if (total >= 50) return tier('sleep.night.score.tiers.fair', 'rem', 'light');
+  return tier('sleep.night.score.tiers.poor', 'awake', 'awake');
 }
 
 /** The stages a night's bar stacks, bottom up, in the hypnogram's colours. */
@@ -84,16 +96,19 @@ const spreadWord = (sd: number) => (sd <= 30 ? 'steady' : sd <= 60 ? 'variable' 
  * stages against your need with its score beneath, then nights at need, sleep debt and how far
  * bedtime strayed.
  */
-export function LastSevenNights({ days, shift, needMin, debt, wide }: {
+export function LastSevenNights({ days, shift, norms, debt, wide, glow }: {
   /** The last seven days, oldest first; each holds the night that ended that morning. */
   days: DailyRecord[];
   /** Their time asleep against the seven days before. */
   shift: PeriodShift;
-  needMin: number;
+  /** The need each night is held to, and the rest of what its score is held to. */
+  norms: SleepNorms;
   /** Over the seven nights before last night, as the body battery counts it. */
   debt: SleepDebt | null;
   wide: boolean;
+  glow?: string;
 }) {
+  const needMin = norms.need;
   const nights = days.map((d) => d.sleep).filter((s): s is SleepSession => s !== null);
   const atNeed = nights.filter((s) => s.minutesAsleep >= needMin).length;
   const spread = bedtimeConsistency(days);
@@ -120,7 +135,7 @@ export function LastSevenNights({ days, shift, needMin, debt, wide }: {
   }
 
   return (
-    <Card className="px-[18px] pt-4 pb-3.5 md:px-5 md:py-[18px] flex flex-col gap-3 md:gap-3.5">
+    <Card className="px-[18px] pt-4 pb-3.5 md:px-5 md:py-[18px] flex flex-col gap-3 md:gap-3.5" glow={glow}>
       <div className="flex items-baseline justify-between gap-2">
         <h2 className="card-title-detail text-zinc-50">{t('sleep.lastSeven.title')}</h2>
         <span className="text-detail text-zinc-500">{formatCivilRange(days[0].date, days[days.length - 1].date)}</span>
@@ -137,7 +152,7 @@ export function LastSevenNights({ days, shift, needMin, debt, wide }: {
             <Delta value={shift.delta} goodWhen="up" digits={0} phrase="sleep.lastSeven.change" />
           </div>
         </div>
-        <NightBars days={days} needMin={needMin} need={need} wide={wide} />
+        <NightBars days={days} norms={norms} need={need} wide={wide} />
         {wide ? (
           <div className="grid grid-cols-3 lg:grid-cols-1 gap-3 lg:gap-3.5">
             {facts.map((f) => <Stat key={f.id} label={f.label} value={rich(f.value, { ...f.values, muted: statUnit })} tone={f.tone} />)}
@@ -160,14 +175,15 @@ export function LastSevenNights({ days, shift, needMin, debt, wide }: {
 }
 
 /** One bar per night, split into stages, against the need line; each night's score sits beneath. */
-function NightBars({ days, needMin, need, wide }: { days: DailyRecord[]; needMin: number; need: string; wide: boolean }) {
+function NightBars({ days, norms, need, wide }: { days: DailyRecord[]; norms: SleepNorms; need: string; wide: boolean }) {
+  const needMin = norms.need;
   const plot = wide ? 120 : 110;
   const longest = Math.max(0, ...days.map((d) => d.sleep?.minutesAsleep ?? 0));
   // Headroom above the need, and above the longest night.
   const top = Math.max(needMin * 1.2, longest * 1.05);
   const px = (min: number) => (min / top) * plot;
   const columns = 'grid grid-cols-7 gap-x-2 md:gap-x-3.5 pr-[30px]';
-  const scored = days.map((d) => ({ date: d.date, sleep: d.sleep, score: d.sleep ? scoreSleep(d.sleep).total : null }));
+  const scored = days.map((d) => ({ date: d.date, sleep: d.sleep, score: d.sleep ? scoreSleep(d.sleep, norms).total : null }));
   return (
     <div
       role="img"
@@ -209,7 +225,7 @@ function NightBars({ days, needMin, need, wide }: { days: DailyRecord[]; needMin
       </div>
       <div className={`relative ${columns} mt-1`}>
         {scored.map((n) => (
-          <span key={n.date} className="text-center text-caption font-semibold tabular-nums" style={{ color: n.score === null ? 'var(--color-zinc-600)' : getScoreTier(n.score).dotColor }}>
+          <span key={n.date} className="text-center text-caption font-semibold tabular-nums" style={{ color: n.score === null ? 'var(--color-zinc-600)' : getScoreTier(n.score).ink }}>
             {n.score ?? '–'}
           </span>
         ))}

@@ -6,6 +6,7 @@ import type { CycleLog } from './cycle';
 import type { SourcePrefs } from './sources';
 import { combineSleepPoints, parseSleepSession } from './sleep';
 import { parseWorkout, sameSession } from './workouts';
+import { combineNutritionPoints, entryTime } from './nutrition';
 
 /**
  * THE REGISTRY — the one place field names live.
@@ -108,12 +109,6 @@ function fill<K extends keyof DailyRecord>(row: DailyRecord, key: K, value: Dail
   if (value === null || value === undefined || (row[key] !== null && row[key] !== undefined)) return false;
   row[key] = value;
   return true;
-}
-
-/** Grams of one nutrient in a nutrition rollup's `nutrients[]`, or undefined when it isn't there. */
-function nutrientGrams(list: unknown, nutrient: string): unknown {
-  if (!Array.isArray(list)) return undefined;
-  return list.find((n: any) => n?.nutrient === nutrient)?.quantity?.gramsSum;
 }
 
 /** A day's four zones by where each starts, or null unless all four are there and climb in order. */
@@ -607,26 +602,17 @@ export const STREAMS: StreamDescriptor[] = [
     occasional: true,
     label: 'Nutrition (Macros)',
     domain: 'wellbeing',
-    mode: 'rollup',
+    mode: 'list',
     container: 'nutritionLog',
     scope: 'nutrition',
-    dateOf: rollupDate,
     note:
-      'NutritionLogRollupValue: energy.kcalSum, totalCarbohydrate.gramsSum and totalFat.gramsSum; ' +
-      'protein only in nutrients[], as { nutrient: "PROTEIN", quantity: { gramsSum } }.',
+      'One point per logged food, listed rather than rolled up so the meals keep their times. ' +
+      "Each source's day is folded into one point first (pipeline/nutrition.ts).",
+    prepare: combineNutritionPoints,
+    dateOf: (c) => c?.day ?? entryTime(c)?.date ?? null,
     apply(ctx, c) {
-      const kcal = num(c?.energy?.kcalSum);
-      const protein = num(nutrientGrams(c?.nutrients, 'PROTEIN'));
-      const carbs = num(c?.totalCarbohydrate?.gramsSum);
-      const fat = num(c?.totalFat?.gramsSum);
-
-      if (kcal === null && protein === null && carbs === null && fat === null) return false;
-
-      if (kcal !== null) ctx.row.caloriesKcal = Math.round(kcal);
-      if (protein !== null) ctx.row.proteinG = Math.round(protein);
-      if (carbs !== null) ctx.row.carbsG = Math.round(carbs);
-      if (fat !== null) ctx.row.fatG = Math.round(fat);
-
+      if (!c?.nutrition) return false;
+      if (!fill(ctx.row, 'nutrition', c.nutrition)) return false;
       mark(ctx, 'nutrition-log');
       return true;
     },
@@ -639,10 +625,11 @@ export const STREAMS: StreamDescriptor[] = [
     mode: 'rollup',
     container: 'hydrationLog',
     scope: 'nutrition',
+    note: 'Daily totals of what was logged, so the times are lost; a day summed to nothing was never logged.',
     dateOf: rollupDate,
     apply(ctx, c) {
       const ml = num(c?.amountConsumed?.millilitersSum ?? c?.millilitersSum);
-      if (ml === null) return false;
+      if (ml === null || ml <= 0) return false;
       ctx.row.hydrationL = round(ml / 1000, 2);
       mark(ctx, 'hydration-log');
       return true;

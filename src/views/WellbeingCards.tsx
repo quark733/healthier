@@ -4,7 +4,7 @@ import { Dumbbell, Scale, Utensils } from 'lucide-react';
 import { t, type MessageKey } from '../i18n';
 import { formatCivilLong, formatHours, formatInteger, formatList } from '../i18n/format';
 import type { Dose } from '../pipeline/trainingDose';
-import { estimateExpenditure } from '../pipeline/expenditure';
+import { latestMaintenance } from '../pipeline/eating';
 import { CHECKIN_ITEMS, caffeineEffect, judgeCheckin, type Checkin, type CheckinItem } from '../pipeline/checkin';
 import { addDays, daysBetween, type CivilDate } from '../lib/date';
 import { bodyComposition, series, weightTrend } from '../pipeline/derive';
@@ -13,8 +13,7 @@ import { LANDMARKS, setsPerMuscle, type Muscle, type MuscleWeek } from '../pipel
 import { recentLoad, sessionSets, sessionVolume, type StrengthSession } from '../pipeline/strength';
 import { KEEP_MUSCLE_LOSS_PCT, weightPace, type Targets } from '../pipeline/targets';
 import type { DailyRecord } from '../types/health';
-import { Card, DOMAIN, Meter, Row, Value, fmtNum } from '../ui/primitives';
-import { MACRO } from './NutritionView';
+import { Card, DOMAIN, MACRO, Meter, Row, Value, fmtNum } from '../ui/primitives';
 
 /**
  * The cards Today shows for food, training and bodyweight, beside sleep, heart and steps. Each one
@@ -33,24 +32,24 @@ export const MUSCLE_NAME = {
 } as const satisfies Record<Muscle, MessageKey>;
 
 const FOOD_NAME = {
-  quark: 'nutrition.foods.quark',
-  skyr: 'nutrition.foods.skyr',
-  cottageCheese: 'nutrition.foods.cottageCheese',
-  chicken: 'nutrition.foods.chicken',
-  tuna: 'nutrition.foods.tuna',
-  eggs: 'nutrition.foods.eggs',
-  wheyShake: 'nutrition.foods.wheyShake',
-  salmon: 'nutrition.foods.salmon',
-  mince: 'nutrition.foods.mince',
-  oats: 'nutrition.foods.oats',
-  rice: 'nutrition.foods.rice',
-  potatoes: 'nutrition.foods.potatoes',
-  pasta: 'nutrition.foods.pasta',
-  bread: 'nutrition.foods.bread',
-  banana: 'nutrition.foods.banana',
-  peanutButter: 'nutrition.foods.peanutButter',
-  nuts: 'nutrition.foods.nuts',
-  oliveOil: 'nutrition.foods.oliveOil',
+  quark: 'food.foods.quark',
+  skyr: 'food.foods.skyr',
+  cottageCheese: 'food.foods.cottageCheese',
+  chicken: 'food.foods.chicken',
+  tuna: 'food.foods.tuna',
+  eggs: 'food.foods.eggs',
+  wheyShake: 'food.foods.wheyShake',
+  salmon: 'food.foods.salmon',
+  mince: 'food.foods.mince',
+  oats: 'food.foods.oats',
+  rice: 'food.foods.rice',
+  potatoes: 'food.foods.potatoes',
+  pasta: 'food.foods.pasta',
+  bread: 'food.foods.bread',
+  banana: 'food.foods.banana',
+  peanutButter: 'food.foods.peanutButter',
+  nuts: 'food.foods.nuts',
+  oliveOil: 'food.foods.oliveOil',
 } as const satisfies Record<string, MessageKey>;
 
 const Head = ({ title, icon }: { title: string; icon: React.ReactNode }) => (
@@ -81,10 +80,10 @@ function MacroBar({ label, eaten, target, color, unit }: { label: string; eaten:
 export function remainingOf(day: DailyRecord | undefined, targets: Targets) {
   const left = (target: number | null, eaten: number | undefined) => (target === null ? null : target - (eaten ?? 0));
   return {
-    kcal: left(targets.kcal, day?.caloriesKcal),
-    proteinG: left(targets.proteinG, day?.proteinG),
-    carbsG: left(targets.carbsG, day?.carbsG),
-    fatG: left(targets.fatG, day?.fatG),
+    kcal: left(targets.kcal, day?.nutrition?.kcal),
+    proteinG: left(targets.proteinG, day?.nutrition?.proteinG),
+    carbsG: left(targets.carbsG, day?.nutrition?.carbsG),
+    fatG: left(targets.fatG, day?.nutrition?.fatG),
   };
 }
 
@@ -92,13 +91,14 @@ export function FoodLine({ food, focus }: { food: Food; focus: 'protein' | 'carb
   const amount = focus === 'protein' ? food.proteinG : focus === 'carbs' ? food.carbsG : food.fatG;
   return (
     <Row dense label={t(FOOD_NAME[food.id as keyof typeof FOOD_NAME], { grams: food.portion })}>
-      {t('nutrition.rest.foodValue', { amount: fmtNum(amount, 0), focus, kcal: fmtNum(food.kcal, 0) })}
+      {t('food.rest.foodValue', { amount: fmtNum(amount, 0), focus, kcal: fmtNum(food.kcal, 0) })}
     </Row>
   );
 }
 
 export function FoodToday({ day, targets, today }: { day: DailyRecord | undefined; targets: Targets; today: CivilDate }) {
-  const logged = day?.caloriesKcal !== undefined;
+  const food = day?.nutrition ?? null;
+  const logged = food !== null;
   const hasTargets = targets.kcal !== null || targets.proteinG !== null;
   const left = remainingOf(day, targets);
   const idea = hasTargets ? suggest(left, 2) : null;
@@ -107,7 +107,7 @@ export function FoodToday({ day, targets, today }: { day: DailyRecord | undefine
       <div className="px-4 pt-4 pb-4 flex-1 flex flex-col gap-3">
         <Head title={t('today.food.title')} icon={<Utensils size={14} className={DOMAIN.wellbeing.text} />} />
         <div className="flex items-baseline gap-2">
-          <Value value={logged ? day!.caloriesKcal! : null} unit={t('units.kcal')} size="md" />
+          <Value value={logged ? food!.kcal : null} unit={t('units.kcal')} size="md" />
           {targets.kcal !== null && (
             <span className="text-caption text-zinc-500">
               {left.kcal! >= 0
@@ -117,15 +117,15 @@ export function FoodToday({ day, targets, today }: { day: DailyRecord | undefine
           )}
         </div>
         <div className="space-y-2">
-          <MacroBar label={t('nutrition.macros.protein')} eaten={day?.proteinG} target={targets.proteinG} color={MACRO.protein} unit={t('units.grams')} />
-          <MacroBar label={t('nutrition.macros.carbs')} eaten={day?.carbsG} target={targets.carbsG} color={MACRO.carbs} unit={t('units.grams')} />
-          <MacroBar label={t('nutrition.macros.fat')} eaten={day?.fatG} target={targets.fatG} color={MACRO.fat} unit={t('units.grams')} />
+          <MacroBar label={t('food.macros.protein')} eaten={food?.proteinG} target={targets.proteinG} color={MACRO.protein} unit={t('units.grams')} />
+          <MacroBar label={t('food.macros.carbs')} eaten={food?.carbsG} target={targets.carbsG} color={MACRO.carbs} unit={t('units.grams')} />
+          <MacroBar label={t('food.macros.fat')} eaten={food?.fatG} target={targets.fatG} color={MACRO.fat} unit={t('units.grams')} />
         </div>
         {!hasTargets && <p className="text-caption text-zinc-500">{t('today.food.noTargets')}</p>}
         {!logged && <p className="text-caption text-zinc-500">{t('today.food.nothing', { date: formatCivilLong(today) })}</p>}
         {idea && (
           <div>
-            <p className="text-caption text-zinc-400 mb-1">{t('nutrition.rest.ideas', { focus: idea.focus, grams: fmtNum(idea.focus === 'protein' ? left.proteinG : idea.focus === 'carbs' ? left.carbsG : left.fatG, 0) })}</p>
+            <p className="text-caption text-zinc-400 mb-1">{t('food.rest.ideas', { focus: idea.focus, grams: fmtNum(idea.focus === 'protein' ? left.proteinG : idea.focus === 'carbs' ? left.carbsG : left.fatG, 0) })}</p>
             {idea.foods.map((f) => <FoodLine key={f.id} food={f} focus={idea.focus} />)}
           </div>
         )}
@@ -211,7 +211,8 @@ export function WeightGoal({ days, targets, today }: { days: DailyRecord[]; targ
   const trend = weightTrend(weights.slice(-35));
   const pace = weightPace(latest?.value ?? null, targets, today);
   const trendPct = trend && latest?.value ? (-100 * trend.kgPerWeek) / latest.value : null;
-  const burn = estimateExpenditure(days, today);
+  // The same maintenance as the Nutrition page's (pipeline/eating.ts).
+  const burn = latestMaintenance(days, today);
   // Fat and lean from the scale's body-fat readings, over the last 8 weeks.
   const comp = bodyComposition(days.filter((d) => d.date > addDays(today, -56)));
   const lost = comp ? -(comp.fatKgPerWeek + comp.leanKgPerWeek) : 0;

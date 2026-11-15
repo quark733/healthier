@@ -12,15 +12,15 @@ import {
 } from '../insights';
 import { freshEntry } from '../insights/helpers';
 import { bringForward, carouselOf, TODAY_MIN } from '../insights/place';
-import { scoreSleep } from '../sleep';
+import { scoreSleep, sleepNorms } from '../sleep';
 import {
   compareToBaseline, coverage, findGaps, periodShift, rollingMean, series, stats, values,
   bedtimeConsistency, currentStreak, readiness, windowShift, firstObserved, sleepRegularity, circularMeanMinutes, typicalSleepWindow,
-  sleepNeedFor, goalStreak, weightTrend, batteryTier, latestBody,
+  sleepNeedFor, goalStreak, weightTrend, batteryTier, latestBody, BATTERY_START,
 } from '../derive';
 import { DEFAULT_GOALS, GOAL_LIMITS, parseGoals, readGoals, type Goals } from '../goals';
 import { STREAMS } from '../registry';
-import { answerQueries, parseQueries, queryRange, type HistoryQueries } from '../history';
+import { answerQueries, answerQuery, parseQueries, queryRange, type HistoryQueries } from '../history';
 import { answerFromRows } from '../incremental';
 import { emptyRecord } from '../normalize';
 import { EMPTY_CYCLE_LOG, summarizeCycles } from '../cycle';
@@ -523,7 +523,7 @@ describe('sync reporting', () => {
     const labels = ds.meta.sources.map((s) => s.label).sort();
     // Four distinct dataSource signatures: the watch, hand-typed Fitbit entries,
     // Samsung Health via Health Connect, and the archived Oura readings.
-    assert.deepEqual(labels, ['Fitbit', 'Google Fitbit Air', 'Oura Ring', 'Samsung Health']);
+    assert.deepEqual(labels, ['Fitbit', 'Fitbit Air', 'Oura Ring', 'Samsung Health']);
     const manual = ds.meta.sources.find((s) => s.label === 'Fitbit')!;
     assert.equal(manual.method, 'MANUAL');
   });
@@ -604,6 +604,46 @@ describe('second-pass corrections', () => {
     assert.equal(four.duration, 0, 'the taper bottoms out at four hours');
   });
 
+  it('holds a night to the sleep need the battery uses, never to less than 7 hours', () => {
+    const base = { minutesAwake: 10, minutesInBed: 490, efficiency: 96, stages: null, segments: [], shortAwakeningsMin: [] };
+    const night = (minutesAsleep: number, need: number) => scoreSleep({ ...base, minutesAsleep } as any, { need, restorative: 0.45 }).duration;
+    // Seven hours is a full night for a 7-hour need and an hour short for an 8-hour one.
+    assert.equal(night(420, 420), 50);
+    assert.ok(night(420, 480) < 50 && night(420, 480) > 35, `7h against an 8h need scored ${night(420, 480)}`);
+    assert.equal(night(480, 480), 50);
+    assert.equal(night(540, 480), 50, 'full marks run on to 9 hours');
+    assert.equal(night(240, 480), 0, 'the taper still bottoms out at four hours');
+    // A 9-hour need takes full marks at 9 hours, and a longer night tapers from there.
+    assert.equal(night(540, 540), 50);
+    assert.ok(night(600, 540) < 50);
+  });
+
+  it('holds deep and REM sleep to the person’s own usual, never to more than 45%', () => {
+    const night = (deep: number, rem: number) =>
+      ({ minutesAsleep: 480, minutesAwake: 10, minutesInBed: 490, efficiency: 96, stages: { deep, rem, light: 480 - deep - rem, awake: 10 } }) as any;
+    const days = (deep: number, rem: number, n = 10) => Array.from({ length: n }, () => ({ sleep: night(deep, rem) }) as any);
+    // An older sleeper's usual 30% earns full marks; it used to earn 17 of 25 against 45%.
+    const usual = sleepNorms(days(48, 96));
+    assert.equal(usual.restorative, 0.3);
+    assert.equal(scoreSleep(night(48, 96), usual).restoration, 25);
+    assert.equal(scoreSleep(night(48, 96)).restoration, 17);
+    // A night below their usual still loses points.
+    assert.ok(scoreSleep(night(24, 72), usual).restoration < 25);
+    // A usual above 45% doesn't raise the bar, and fewer than 8 staged nights keeps 45%.
+    assert.equal(sleepNorms(days(120, 120)).restorative, 0.45);
+    assert.equal(sleepNorms(days(48, 96, 7)).restorative, 0.45);
+  });
+
+  it('answers the history’s sleep scores with the same norms as the window', () => {
+    const norms = { need: 480, restorative: 0.3 };
+    const nights = [450, 480, 510].map((minutesAsleep, i) => ({
+      date: `2026-05-0${i + 1}`,
+      sleep: { minutesAsleep, minutesAwake: 10, minutesInBed: minutesAsleep + 10, efficiency: 96, stages: { deep: 48, rem: 96, light: minutesAsleep - 144, awake: 10 } },
+    })) as any[];
+    const a = answerQuery({ measure: 'sleepScore', aggregate: 'max', back: 365 }, nights, { from: '2026-05-01', to: '2026-05-03' }, norms);
+    assert.equal(a.rows[0].max!.value, Math.max(...nights.map((d) => scoreSleep(d.sleep, norms).total)));
+  });
+
   it('makes efficiency discriminating rather than a free 25 points', () => {
     const mk = (efficiency: number) =>
       scoreSleep({
@@ -621,7 +661,7 @@ describe('second-pass corrections', () => {
     const jul7 = day(ds, '2026-07-07');
     // Hand-typed into Fitbit, not measured by the watch that also synced that day.
     assert.equal(jul7.sourceByType['weight'], 'FITBIT:Fitbit');
-    assert.equal(jul7.sourceByType['daily-resting-heart-rate'], 'FITBIT:Google Fitbit Air');
+    assert.equal(jul7.sourceByType['daily-resting-heart-rate'], 'FITBIT:Fitbit Air');
     // Same metric, different app, three weeks earlier.
     assert.equal(day(ds, '2026-06-16').sourceByType['weight'], 'HEALTH_CONNECT:Samsung Health');
     // The archived Oura reading keeps its own attribution too.
@@ -748,6 +788,33 @@ describe('readiness v2', () => {
     assert.ok(pExt.contribution <= Math.max(cMod, 8) + 0.01);
     assert.ok(pExt.note, 'the saturation caution must be attached');
     assert.match(pExt.note!, /overload/i);
+  });
+
+  it('with the cycle allowed for, softens a penalty it explains and never adds one', () => {
+    // A second-half morning: resting heart rate up and skin temperature warm.
+    const days = syntheticDays(28, { restingHr: 66, tempDev: 0.55 });
+    const raw = readiness(days);
+    // The judged copy moves the night back by this person's usual second-half shift.
+    const judged = days.map((d, i) => (i === days.length - 1 ? { ...d, restingHr: 63, skinTempDeviationC: 0.15 } : d));
+    const aware = readiness(days, null, judged);
+    const rhrRaw = part(raw, 'restingHr')!.contribution;
+    const rhr = part(aware, 'restingHr')!;
+    assert.ok(rhrRaw < rhr.contribution && rhr.contribution < 0, `${rhrRaw} → ${rhr.contribution}`);
+    assert.match(rhr.detail, /66 bpm/, 'the detail keeps the person’s own reading');
+    assert.match(rhr.detail, /softened for this part of your cycle/);
+    const temp = part(aware, 'skinTemp')!;
+    assert.equal(temp.contribution, 0);
+    assert.match(temp.detail, /usual for this part of your cycle/);
+    // The score is still where the morning starts plus what each contributor shows.
+    assert.equal(aware.score, Math.round(BATTERY_START + aware.parts.reduce((a, p) => a + p.contribution, 0)));
+    assert.ok(aware.score! > raw.score!);
+
+    // Judged nights that look worse never cost more, and a reward is never raised.
+    const worse = days.map((d, i) => (i === days.length - 1 ? { ...d, restingHr: 70 } : d));
+    assert.equal(readiness(days, null, worse).score, raw.score);
+    const good = syntheticDays(28, { hrv: 38 });
+    const better = good.map((d, i) => (i === good.length - 1 ? { ...d, hrv: 44 } : d));
+    assert.equal(readiness(good, null, better).score, readiness(good).score);
   });
 
   it('penalises suppressed HRV more than the same-sized elevation is rewarded', () => {
@@ -1539,7 +1606,7 @@ describe('insight engine — data cards', () => {
     marked(thin);
     const card = cardOf(thin, 'sleep-coverage')!;
     assert.equal(card.title, 'Some nights have no record');
-    assert.match(card.text, /^Your watch recorded sleep on 14 of the last 40 nights\./);
+    assert.match(card.text, /^Your devices recorded sleep on 14 of the last 40 nights\./);
     assert.equal(cardOf(thin, 'sleep-gap'), undefined, 'one card about the record at a time');
   });
 
@@ -2649,15 +2716,22 @@ describe('goals', () => {
   it('reads stored goals inside their bounds, with defaults where one is missing', () => {
     assert.deepEqual(readGoals(null), DEFAULT_GOALS);
     assert.deepEqual(readGoals({ steps: 'lots', sleepNeed: 'auto' }), DEFAULT_GOALS);
-    assert.deepEqual(readGoals({ steps: 10, briskMinutes: 1000, sleepNeed: 60 }), { steps: 2000, briskMinutes: 120, sleepNeed: 420 },
+    assert.deepEqual(readGoals({ steps: 10, briskMinutes: 1000, sleepNeed: 60 }), { steps: 2000, briskMinutes: 120, sleepNeed: 420, protein: null, fibre: 30, water: 2000 },
       'ten steps and an hour of sleep are pulled up to the floors');
-    assert.deepEqual(readGoals({ steps: 7720, briskMinutes: 33, sleepNeed: 488 }), { steps: 7500, briskMinutes: 35, sleepNeed: 495 },
+    assert.deepEqual(readGoals({ steps: 7720, briskMinutes: 33, sleepNeed: 488 }), { steps: 7500, briskMinutes: 35, sleepNeed: 495, protein: null, fibre: 30, water: 2000 },
       'and onto their steps');
   });
 
   it('saves only goals on their steps and inside their bounds', () => {
-    assert.deepEqual(parseGoals({ steps: 8000, briskMinutes: 25, sleepNeed: null }), { steps: 8000, briskMinutes: 25, sleepNeed: null });
-    assert.deepEqual(parseGoals({ steps: 25000, briskMinutes: 120, sleepNeed: 540 }), { steps: 25000, briskMinutes: 120, sleepNeed: 540 });
+    assert.deepEqual(parseGoals({ steps: 8000, briskMinutes: 25, sleepNeed: null }), { steps: 8000, briskMinutes: 25, sleepNeed: null, protein: null, fibre: 30, water: 2000 },
+      'a page from before the food targets keeps their defaults');
+    assert.equal(readGoals({ water: 350 }).water, 1000, 'a glass a day is pulled up to the floor');
+    assert.equal(readGoals({ water: 2240 }).water, 2200, 'and onto its steps');
+    assert.deepEqual(parseGoals({ steps: 25000, briskMinutes: 120, sleepNeed: 540, protein: 150, fibre: 35, water: 2500 }), { steps: 25000, briskMinutes: 120, sleepNeed: 540, protein: 150, fibre: 35, water: 2500 });
+    assert.equal(parseGoals({ steps: 10000, briskMinutes: 30, sleepNeed: null, protein: 12 }), null, 'twelve grams is no protein target');
+    assert.equal(parseGoals({ steps: 10000, briskMinutes: 30, sleepNeed: null, fibre: 32 }), null, 'fibre off its steps');
+    assert.equal(parseGoals({ steps: 10000, briskMinutes: 30, sleepNeed: null, water: 2250 }), null, 'water off its steps');
+    assert.equal(parseGoals({ steps: 10000, briskMinutes: 30, sleepNeed: null, water: 6000 }), null, 'six litres is no water target');
     assert.equal(parseGoals({ steps: 10, briskMinutes: 30, sleepNeed: null }), null, 'ten steps is no goal');
     assert.equal(parseGoals({ steps: 10000, briskMinutes: 30, sleepNeed: 60 }), null, 'an hour is no sleep need');
     assert.equal(parseGoals({ steps: 10000, briskMinutes: 5, sleepNeed: null }), null);

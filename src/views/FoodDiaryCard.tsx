@@ -8,7 +8,7 @@ import type { DailyRecord } from '../types/health';
 import type { FoodLog } from '../hooks/useFoodLog';
 import { useTargets } from '../hooks/useTargets';
 import { byDate, mealsOf, savedMealEntries, totalsOf, weekAverage, type FoodEntry, type FoodTotals, type Meal } from '../pipeline/foodLog';
-import { Card, CardHead, fmtNum } from '../ui/primitives';
+import { Card, CardHead, MACRO, fmtNum } from '../ui/primitives';
 
 /**
  * The food diary as a calendar: a month of days, each with what was eaten, and the chosen day's
@@ -16,8 +16,8 @@ import { Card, CardHead, fmtNum } from '../ui/primitives';
  * (or that were pasted) are the diary; a day with only a diary app's numbers shows those.
  */
 
-/** Energy and the macros in the colours the Nutrition charts use. */
-const COLOR = { energy: 'var(--amber-400)', protein: 'var(--rose-400)', carbs: 'var(--teal-400)', fat: 'var(--violet-400)' } as const;
+/** The macros in the Nutrition page's colours (MACRO); energy in a neutral, apart from all of them. */
+const COLOR = { energy: 'var(--color-zinc-300)', protein: MACRO.protein, carbs: MACRO.carbs, fat: MACRO.fat } as const;
 
 const n0 = (v: number) => formatInteger(Math.round(v));
 const macros = (x: { kcal: number; protein: number; carbs: number; fat: number }) => ({
@@ -67,17 +67,17 @@ export function FoodDiaryCard({ days, today, foodLog }: { days: DailyRecord[]; t
 
   return (
     <Card>
-      <CardHead title={t('nutrition.diary.title')} hint={t('nutrition.diary.hint')} />
+      <CardHead title={t('food.diary.title')} hint={t('food.diary.hint')} />
       <div className="px-5 pb-5 grid grid-cols-1 lg:grid-cols-2 gap-x-8 gap-y-5">
         <div>
           <div className="flex items-center justify-between mb-2">
-            <button type="button" aria-label={t('nutrition.diary.prev')} onClick={() => setMonth((m) => shiftMonth(m, -1))} className="p-1 text-zinc-400 hover:text-zinc-100">
+            <button type="button" aria-label={t('food.diary.prev')} onClick={() => setMonth((m) => shiftMonth(m, -1))} className="p-1 text-zinc-400 hover:text-zinc-100">
               <ChevronLeft size={16} />
             </button>
             <span className="text-detail text-zinc-200">{formatMonthYear(month)}</span>
             <button
               type="button"
-              aria-label={t('nutrition.diary.next')}
+              aria-label={t('food.diary.next')}
               disabled={month >= today.slice(0, 7)}
               onClick={() => setMonth((m) => shiftMonth(m, 1))}
               className="p-1 text-zinc-400 hover:text-zinc-100 disabled:opacity-30"
@@ -94,7 +94,7 @@ export function FoodDiaryCard({ days, today, foodLog }: { days: DailyRecord[]; t
             {cells.map((d, i) => {
               if (!d) return <span key={`e${i}`} />;
               const diary = dated.get(d);
-              const kcal = diary ? totalsOf(diary).kcal : record.get(d)?.caloriesKcal;
+              const kcal = diary ? totalsOf(diary).kcal : record.get(d)?.nutrition?.kcal;
               const future = d > today;
               const on = d === chosen;
               return (
@@ -104,11 +104,11 @@ export function FoodDiaryCard({ days, today, foodLog }: { days: DailyRecord[]; t
                   disabled={future}
                   onClick={() => setChosen(d)}
                   className={`rounded-lg py-1 flex flex-col items-center leading-tight border ${
-                    on ? 'border-amber-400/70 bg-amber-400/10' : 'border-transparent hover:bg-zinc-800/60'
+                    on ? 'border-purple-400/70 bg-purple-400/10' : 'border-transparent hover:bg-zinc-800/60'
                   } ${future ? 'opacity-30' : ''}`}
                 >
                   <span className={`text-caption ${d === today ? 'text-zinc-100 font-semibold' : 'text-zinc-300'}`}>{Number(d.slice(8))}</span>
-                  <span className={`text-micro tabular-nums ${diary ? 'text-amber-300' : 'text-zinc-600'}`}>
+                  <span className={`text-micro tabular-nums ${diary ? 'text-purple-300' : 'text-zinc-600'}`}>
                     {kcal !== undefined && kcal > 0 ? n0(kcal) : ' '}
                   </span>
                   {diary && targets.kcal !== null && (
@@ -120,7 +120,7 @@ export function FoodDiaryCard({ days, today, foodLog }: { days: DailyRecord[]; t
               );
             })}
           </div>
-          <p className="text-note text-zinc-500 mt-2">{t('nutrition.diary.legend')}</p>
+          <p className="text-note text-zinc-500 mt-2">{t('food.diary.legend')}</p>
         </div>
 
         <div>
@@ -133,24 +133,24 @@ export function FoodDiaryCard({ days, today, foodLog }: { days: DailyRecord[]; t
               {mealsOf(dayEntries).map((m) => (
                 <div key={m.meal} className="mb-3">
                   <div className="flex items-center justify-between gap-3 border-b border-zinc-800 pb-1 mb-1">
-                    <span className="text-caption font-medium text-zinc-200">{t('nutrition.diary.meal', { meal: m.meal })}</span>
+                    <span className="text-caption font-medium text-zinc-200">{t('food.diary.meal', { meal: m.meal })}</span>
                     <span className="flex items-center gap-2">
                       <MacroLine x={m.totals} className="text-note" />
                       <SaveMeal meal={m.meal} entries={m.entries} onSave={foodLog.saveMeal} />
                       {chosen !== today && (
                         <button
                           type="button"
-                          aria-label={t('nutrition.diary.copy')}
-                          title={t('nutrition.diary.copy')}
+                          aria-label={t('food.diary.copy')}
+                          title={t('food.diary.copy')}
                           onClick={() => void copyTo(m.entries, today).then(() => setCopied(m.meal))}
-                          className="text-zinc-500 hover:text-amber-300"
+                          className="text-zinc-500 hover:text-purple-300"
                         >
                           <Copy size={12} />
                         </button>
                       )}
                     </span>
                   </div>
-                  {copied === m.meal && chosen !== today && <p className="text-note text-amber-300 mb-1">{t('nutrition.diary.copied')}</p>}
+                  {copied === m.meal && chosen !== today && <p className="text-note text-purple-300 mb-1">{t('food.diary.copied')}</p>}
                   {m.entries.map((e) => (
                     <div key={e.id ?? e.food} className="flex items-start justify-between gap-3 py-0.5">
                       <div className="min-w-0">
@@ -159,13 +159,13 @@ export function FoodDiaryCard({ days, today, foodLog }: { days: DailyRecord[]; t
                           {e.grams !== null && e.id ? (
                             <GramsEdit grams={e.grams} onSave={(g) => setGrams(e.id!, g)} />
                           ) : e.grams !== null ? (
-                            <span className="text-zinc-500">{t('nutrition.diary.grams', { grams: fmtNum(e.grams, 0) })}</span>
+                            <span className="text-zinc-500">{t('food.diary.grams', { grams: fmtNum(e.grams, 0) })}</span>
                           ) : null}
                         </p>
                         <MacroLine x={e} className="block text-note" />
                       </div>
                       {e.id && (
-                        <button type="button" aria-label={t('nutrition.diary.delete')} onClick={() => remove(e.id!)} className="text-zinc-600 hover:text-rose-300 mt-0.5">
+                        <button type="button" aria-label={t('food.diary.delete')} onClick={() => remove(e.id!)} className="text-zinc-600 hover:text-rose-300 mt-0.5">
                           <Trash2 size={13} />
                         </button>
                       )}
@@ -175,24 +175,24 @@ export function FoodDiaryCard({ days, today, foodLog }: { days: DailyRecord[]; t
               ))}
               <DayTotal total={total} />
             </>
-          ) : appDay?.caloriesKcal !== undefined ? (
+          ) : appDay?.nutrition ? (
             <p className="text-caption text-zinc-400">
-              {t('nutrition.diary.fromApp', {
-                kcal: n0(appDay.caloriesKcal),
-                p: n0(appDay.proteinG ?? 0),
-                c: n0(appDay.carbsG ?? 0),
-                f: n0(appDay.fatG ?? 0),
+              {t('food.diary.fromApp', {
+                kcal: n0(appDay.nutrition.kcal),
+                p: n0(appDay.nutrition.proteinG),
+                c: n0(appDay.nutrition.carbsG),
+                f: n0(appDay.nutrition.fatG),
               })}
             </p>
           ) : (
-            <p className="text-caption text-zinc-500">{t('nutrition.diary.empty')}</p>
+            <p className="text-caption text-zinc-500">{t('food.diary.empty')}</p>
           )}
         </div>
 
         <div className="lg:col-span-2">
-          <p className="text-note text-zinc-500">{t('nutrition.diary.claude')}</p>
+          <p className="text-note text-zinc-500">{t('food.diary.claude')}</p>
           <button type="button" onClick={() => setPasting((p) => !p)} className="mt-2 text-caption text-zinc-400 hover:text-zinc-200 underline underline-offset-2">
-            {t('nutrition.diary.paste', { open: pasting ? 'yes' : 'no' })}
+            {t('food.diary.paste', { open: pasting ? 'yes' : 'no' })}
           </button>
           {pasting && <Paste importText={importText} onDone={(d) => d && setChosen(d)} />}
         </div>
@@ -204,11 +204,11 @@ export function FoodDiaryCard({ days, today, foodLog }: { days: DailyRecord[]; t
 function DayTotal({ total }: { total: FoodTotals }) {
   return (
     <div className="flex items-baseline justify-between gap-3 border-t border-zinc-700 pt-2">
-      <span className="text-caption font-medium text-zinc-200">{t('nutrition.diary.total')}</span>
+      <span className="text-caption font-medium text-zinc-200">{t('food.diary.total')}</span>
       <span className="text-right">
         <MacroLine x={total} className="block text-caption text-zinc-200" />
         <span className="block text-note text-zinc-500 tabular-nums">
-          {t('nutrition.diary.extra', { sat: fmtNum(total.satFat, 1), salt: fmtNum(total.salt, 1) })}
+          {t('food.diary.extra', { sat: fmtNum(total.satFat, 1), salt: fmtNum(total.salt, 1) })}
         </span>
       </span>
     </div>
@@ -236,24 +236,24 @@ function Bars({ total, targets, fatFloor }: { total: FoodTotals; targets: Return
             <div key={r.key}>
               <div className="flex items-baseline justify-between gap-2">
                 <span className="text-caption font-medium" style={{ color: r.color }}>
-                  {t('nutrition.diary.bar', { what: r.key })}
+                  {t('food.diary.bar', { what: r.key })}
                 </span>
                 <span className="text-note text-zinc-400 tabular-nums">
-                  {t('nutrition.diary.of', { got: n0(r.got), target: n0(r.target), unit: r.unit })}
+                  {t('food.diary.of', { got: n0(r.got), target: n0(r.target), unit: r.unit })}
                 </span>
               </div>
               <div className="h-2 rounded-full bg-zinc-800 mt-1 overflow-hidden">
                 <div className="h-full rounded-full" style={{ width: `${pct}%`, background: r.color, opacity: left < 0 ? 0.6 : 1 }} />
               </div>
               <p className="text-caption text-zinc-200 tabular-nums mt-0.5">
-                {t('nutrition.diary.leftOver', { over: left < 0 ? 'yes' : 'no', amount: n0(Math.abs(left)), unit: r.unit })}
+                {t('food.diary.leftOver', { over: left < 0 ? 'yes' : 'no', amount: n0(Math.abs(left)), unit: r.unit })}
               </p>
             </div>
           );
         })}
       </div>
       <p className="text-note text-zinc-400 tabular-nums mt-2">
-        {rich('nutrition.diary.carbsFat', {
+        {rich('food.diary.carbsFat', {
           c: (w) => <span style={{ color: COLOR.carbs }}>{w}</span>,
           f: (w) => <span style={{ color: COLOR.fat }}>{w}</span>,
           carbs: n0(total.carbs),
@@ -272,7 +272,7 @@ function WeekLine({ days, end, targets }: { days: DailyRecord[]; end: CivilDate;
   if (!w) return null;
   return (
     <p className="text-note text-zinc-400 tabular-nums mb-3">
-      {t('nutrition.diary.week', {
+      {t('food.diary.week', {
         kcal: n0(w.kcal),
         protein: n0(w.protein),
         n: w.days,
@@ -289,16 +289,16 @@ function SavedMeals({ foodLog, date }: { foodLog: FoodLog; date: CivilDate }) {
   if (!saved.length) return null;
   return (
     <div className="mb-4">
-      <p className="text-note text-zinc-500 mb-1">{t('nutrition.diary.savedTitle')}</p>
+      <p className="text-note text-zinc-500 mb-1">{t('food.diary.savedTitle')}</p>
       <div className="flex flex-wrap gap-1.5">
         {saved.map((m) => (
           <span key={m.id ?? m.name} className="inline-flex items-center rounded-full border border-zinc-700 bg-zinc-900/60 text-caption">
-            <button type="button" onClick={() => void logSaved(m, date)} className="pl-2.5 pr-1.5 py-1 text-zinc-200 hover:text-amber-300 flex items-center gap-1">
+            <button type="button" onClick={() => void logSaved(m, date)} className="pl-2.5 pr-1.5 py-1 text-zinc-200 hover:text-purple-300 flex items-center gap-1">
               <Plus size={12} />
-              {t('nutrition.diary.savedChip', { name: m.name, kcal: n0(totalsOf(savedMealEntries(m, date)).kcal) })}
+              {t('food.diary.savedChip', { name: m.name, kcal: n0(totalsOf(savedMealEntries(m, date)).kcal) })}
             </button>
             {m.id && (
-              <button type="button" aria-label={t('nutrition.diary.savedDelete', { name: m.name })} onClick={() => void deleteSaved(m.id!)} className="pr-2 pl-0.5 text-zinc-600 hover:text-rose-300">
+              <button type="button" aria-label={t('food.diary.savedDelete', { name: m.name })} onClick={() => void deleteSaved(m.id!)} className="pr-2 pl-0.5 text-zinc-600 hover:text-rose-300">
                 <X size={11} />
               </button>
             )}
@@ -324,13 +324,13 @@ function SaveMeal({ meal, entries, onSave }: { meal: Meal; entries: FoodEntry[];
     return (
       <button
         type="button"
-        aria-label={t('nutrition.diary.saveMeal')}
-        title={t('nutrition.diary.saveMeal')}
+        aria-label={t('food.diary.saveMeal')}
+        title={t('food.diary.saveMeal')}
         onClick={() => {
-          setName(t('nutrition.diary.meal', { meal }));
+          setName(t('food.diary.meal', { meal }));
           setOpen(true);
         }}
-        className={done ? 'text-amber-300' : 'text-zinc-500 hover:text-amber-300'}
+        className={done ? 'text-purple-300' : 'text-zinc-500 hover:text-purple-300'}
       >
         <Bookmark size={12} />
       </button>
@@ -340,17 +340,17 @@ function SaveMeal({ meal, entries, onSave }: { meal: Meal; entries: FoodEntry[];
     <span className="inline-flex items-center gap-1">
       <input
         autoFocus
-        aria-label={t('nutrition.diary.saveMeal')}
+        aria-label={t('food.diary.saveMeal')}
         value={name}
         onChange={(e) => setName(e.target.value)}
         onKeyDown={(e) => {
           if (e.key === 'Enter') void save();
           if (e.key === 'Escape') setOpen(false);
         }}
-        className="w-28 rounded bg-zinc-900 border border-amber-400/60 px-1 py-0 text-note text-zinc-100"
+        className="w-28 rounded bg-zinc-900 border border-purple-400/60 px-1 py-0 text-note text-zinc-100"
       />
-      <button type="button" onClick={() => void save()} className="text-note text-amber-300">
-        {t('nutrition.diary.saveMealGo')}
+      <button type="button" onClick={() => void save()} className="text-note text-purple-300">
+        {t('food.diary.saveMealGo')}
       </button>
     </span>
   );
@@ -360,7 +360,7 @@ function SaveMeal({ meal, entries, onSave }: { meal: Meal; entries: FoodEntry[];
 function MacroLine({ x, className = '' }: { x: { kcal: number; protein: number; carbs: number; fat: number }; className?: string }) {
   return (
     <span className={`tabular-nums text-zinc-400 ${className}`}>
-      {rich('nutrition.diary.macroLine', {
+      {rich('food.diary.macroLine', {
         ...macros(x),
         p: (w) => <span style={{ color: COLOR.protein }}>{w}</span>,
         c: (w) => <span style={{ color: COLOR.carbs }}>{w}</span>,
@@ -393,14 +393,14 @@ function GramsEdit({ grams, onSave }: { grams: number; onSave: (g: number) => Pr
     return (
       <button
         type="button"
-        aria-label={t('nutrition.diary.editGrams')}
+        aria-label={t('food.diary.editGrams')}
         onClick={() => {
           setValue(String(grams));
           setEditing(true);
         }}
         className={`tabular-nums underline decoration-dotted underline-offset-2 ${failed ? 'text-rose-300' : 'text-zinc-400 hover:text-zinc-100'}`}
       >
-        {t('nutrition.diary.grams', { grams: fmtNum(grams, 0) })}
+        {t('food.diary.grams', { grams: fmtNum(grams, 0) })}
       </button>
     );
   }
@@ -409,7 +409,7 @@ function GramsEdit({ grams, onSave }: { grams: number; onSave: (g: number) => Pr
       <input
         autoFocus
         inputMode="decimal"
-        aria-label={t('nutrition.diary.editGrams')}
+        aria-label={t('food.diary.editGrams')}
         value={value}
         onChange={(e) => setValue(e.target.value)}
         onBlur={save}
@@ -417,9 +417,9 @@ function GramsEdit({ grams, onSave }: { grams: number; onSave: (g: number) => Pr
           if (e.key === 'Enter') void save();
           if (e.key === 'Escape') setEditing(false);
         }}
-        className="w-16 rounded bg-zinc-900 border border-amber-400/60 px-1 py-0 text-caption text-zinc-100 tabular-nums"
+        className="w-16 rounded bg-zinc-900 border border-purple-400/60 px-1 py-0 text-caption text-zinc-100 tabular-nums"
       />
-      <span className="text-zinc-500">{t('nutrition.diary.gramUnit')}</span>
+      <span className="text-zinc-500">{t('food.diary.gramUnit')}</span>
     </span>
   );
 }
@@ -444,7 +444,7 @@ function Paste({ importText, onDone }: { importText: FoodLog['importText']; onDo
   };
   return (
     <div className="mt-2 space-y-2">
-      <p className="text-note text-zinc-500">{t('nutrition.diary.pasteHint')}</p>
+      <p className="text-note text-zinc-500">{t('food.diary.pasteHint')}</p>
       <textarea
         value={text}
         onChange={(e) => setText(e.target.value)}
@@ -453,11 +453,11 @@ function Paste({ importText, onDone }: { importText: FoodLog['importText']; onDo
       />
       <div className="flex items-center gap-3">
         <button type="button" disabled={!text.trim() || busy} onClick={save} className="rounded-lg bg-zinc-100 text-zinc-900 px-3 py-1.5 text-caption font-medium disabled:opacity-40">
-          {t('nutrition.diary.save')}
+          {t('food.diary.save')}
         </button>
         {result && (
           <span className={`text-caption ${result === 'failed' ? 'text-rose-300' : 'text-zinc-400'}`}>
-            {result === 'failed' ? t('nutrition.diary.failed') : t('nutrition.diary.saved', { n: result.saved, unread: result.unread })}
+            {result === 'failed' ? t('food.diary.failed') : t('food.diary.saved', { n: result.saved, unread: result.unread })}
           </span>
         )}
       </div>

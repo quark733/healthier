@@ -2,7 +2,7 @@ import { addDays, dateRange, type CivilDate } from '../../lib/date';
 import type { DailyRecord } from '../../types/health';
 import { scoreSleep } from '../sleep';
 import {
-  compareVital, isRecent, readiness, sleepDebt, sleepNeedFor,
+  compareVital, isRecent, readiness, sleepDebt, sleepNorms,
 } from '../derive';
 import { DEFAULT_GOALS, type Goals } from '../goals';
 import type { InsightDataset, InsightOptions } from './context';
@@ -13,7 +13,10 @@ import { insightFeeds } from './engine';
 export function todaySummary(ds: InsightDataset, now: Date = new Date(), extras?: InsightOptions) {
   const days = ds.days;
   const goals = extras?.goals ?? DEFAULT_GOALS;
-  const need = sleepNeedFor(days, goals.sleepNeed);
+  const norms = sleepNorms(days, goals.sleepNeed);
+  const need = norms.need;
+  // With cycle tracking on, the battery softens a penalty the cycle explains (see readiness).
+  const judged = extras?.cycle?.judged ?? null;
   const last = days[days.length - 1] ?? null;
   // Cards about now show readings from today or yesterday; anything older is history, not last night.
   const recent = (d: DailyRecord | undefined) => (d && isRecent(d.date, last?.date) ? d : null);
@@ -27,13 +30,13 @@ export function todaySummary(ds: InsightDataset, now: Date = new Date(), extras?
     today: last,
     movementDay,
     sleepDay,
-    sleepScore: sleepDay?.sleep ? scoreSleep(sleepDay.sleep) : null,
+    sleepScore: sleepDay?.sleep ? scoreSleep(sleepDay.sleep, norms) : null,
     hrv,
     rhr,
-    readiness: readiness(days, goals.sleepNeed),
+    readiness: readiness(days, goals.sleepNeed, judged),
     sleepTargetMin: need,
     debt: sleepDebt(days, need),
-    week: weekSummary(days, goals),
+    week: weekSummary(days, goals, judged),
     observations: insightFeeds(ds, now, extras).today,
   };
 }
@@ -57,14 +60,14 @@ export interface PeriodSummary {
 /** The seven days ending today. */
 export type WeekSummary = PeriodSummary;
 
-export const weekSummary = (days: DailyRecord[], goals: Goals = DEFAULT_GOALS): PeriodSummary | null =>
-  periodSummary(days, 7, goals);
+export const weekSummary = (days: DailyRecord[], goals: Goals = DEFAULT_GOALS, judged: DailyRecord[] | null = null): PeriodSummary | null =>
+  periodSummary(days, 7, goals, judged);
 
 /** The 30 days ending today, for the card's month view. */
-export const monthSummary = (days: DailyRecord[], goals: Goals = DEFAULT_GOALS): PeriodSummary | null =>
-  periodSummary(days, 30, goals);
+export const monthSummary = (days: DailyRecord[], goals: Goals = DEFAULT_GOALS, judged: DailyRecord[] | null = null): PeriodSummary | null =>
+  periodSummary(days, 30, goals, judged);
 
-function periodSummary(days: DailyRecord[], length: number, goals: Goals): PeriodSummary | null {
+function periodSummary(days: DailyRecord[], length: number, goals: Goals, judged: DailyRecord[] | null): PeriodSummary | null {
   const today = days.at(-1)?.date;
   if (!today) return null;
   const from = addDays(today, -(length - 1));
@@ -73,7 +76,7 @@ function periodSummary(days: DailyRecord[], length: number, goals: Goals): Perio
 
   const battery = dateRange(from, today).map((date) => {
     const i = days.findIndex((d) => d.date === date);
-    return { date, score: i < 0 ? null : readiness(days.slice(0, i + 1), goals.sleepNeed).score };
+    return { date, score: i < 0 ? null : readiness(days.slice(0, i + 1), goals.sleepNeed, judged).score };
   });
   const nights = sleepMins(period, (s) => s.minutesAsleep);
   const azm = period.some((d) => d.zoneMinutes !== null);

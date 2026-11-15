@@ -17,6 +17,7 @@ import {
 } from '../src/pipeline/incremental';
 import type { DailyRecord, SourceRef, StreamReport } from '../src/types/health';
 import { readGoals } from '../src/pipeline/goals';
+import { sleepNorms, type SleepNorms } from '../src/pipeline/sleep';
 import { EMPTY_CYCLE_LOG } from '../src/pipeline/cycle';
 import { answerQueries, queriesSpan, type HistoryAnswers, type HistoryQueries } from '../src/pipeline/history';
 import { SCOPES, SLEEP_HR_FLOOR, STREAMS, type ScopeKey } from '../src/pipeline/registry';
@@ -187,6 +188,17 @@ async function syncUserLocked(deps: Deps, userId: string, status: SyncStatus, fo
     rebuild ||
     !state.lastFullSyncAt ||
     now.getTime() - state.lastFullSyncAt.getTime() > FULL_RESYNC_DAYS * DAY_MS;
+
+  // A stream now fetched another way than its stored days were (the food log moved from daily
+  // totals to listed meals) starts over on its own, history included, rather than everyone rebuilding.
+  if (!rebuild) {
+    for (const s of STREAMS) {
+      const was = streamStates.get(s.dataType)?.report?.mode;
+      if (!was || was === 'derived' || was === s.mode) continue;
+      await purgeStream(deps.db, userId, s.dataType);
+      streamStates.delete(s.dataType);
+    }
+  }
 
   const output = await syncIncremental({
     transport: new HealthTransport({ token }),
@@ -464,7 +476,9 @@ export async function loadDataset(
   dataset.days = applyFoodLog(dataset.days, await getFoodEntries(deps.db, userId, from, to));
   dataset.meta.fromCache = true;
   dataset.meta.cacheAgeMs = Date.now() - state.lastSyncAt.getTime();
-  if (Object.keys(queries).length) dataset.answers = await answerHistory(deps, userId, queries, from, to, choice);
+  // The sleep score is held to the norms the app works out from this same window.
+  const norms = sleepNorms(dataset.days, readGoals(user.goals).sleepNeed);
+  if (Object.keys(queries).length) dataset.answers = await answerHistory(deps, userId, queries, from, to, choice, norms);
   return { dataset, syncedAt: state.lastSyncAt, history: await describeHistory(deps, userId, to, states) };
 }
 
@@ -473,13 +487,15 @@ export async function loadDataset(
  * one read for the span they need together, then each over its own range.
  * Worked out on every read and never stored.
  */
-async function answerHistory(deps: Deps, userId: string, queries: HistoryQueries, from: string, to: string, choice: SourceChoice): Promise<HistoryAnswers> {
+async function answerHistory(
+  deps: Deps, userId: string, queries: HistoryQueries, from: string, to: string, choice: SourceChoice, norms: SleepNorms,
+): Promise<HistoryAnswers> {
   const limit = historyStart(to, deps.config.historyDays, DASHBOARD_WINDOW_DAYS);
   const stored = await getOldestStreamDay(deps.db, userId);
   const oldest = stored && stored > limit ? stored : limit;
   const span = queriesSpan(queries, to, from, oldest);
   const days = span ? assembleHistory(await getStreamDays(deps.db, userId, span.from, span.to), span.from, span.to, choice) : [];
-  return answerQueries(queries, days, to, from, oldest);
+  return answerQueries(queries, days, to, from, oldest, norms);
 }
 
 /** How far back stored history reaches, and whether the backfill is done. */

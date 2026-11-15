@@ -2,7 +2,8 @@ import { addDays, daysBetween, weekdayIndex, type CivilDate } from '../lib/date'
 import { t, type MessageKey } from '../i18n';
 import { formatCivil, formatDuration, formatFixed, formatRounded } from '../i18n/format';
 import type { DailyRecord, HealthDataset, SleepSession } from '../types/health';
-import { scoreSleep } from './sleep';
+import { scoreSleep, sleepNeedFor } from './sleep';
+import { quantile, stats, theilSen, type Stats } from './stats';
 import { fillSource } from './sources';
 
 /**
@@ -42,51 +43,8 @@ export const values = (s: Point[]): number[] =>
 
 // ─────────────────────────────────────────────────────────────── statistics
 
-export interface Stats {
-  n: number;
-  mean: number;
-  median: number;
-  min: number;
-  max: number;
-  sd: number;
-  /** Median absolute deviation — robust to the one 17,915-step day. */
-  mad: number;
-  sum: number;
-  first: number;
-  last: number;
-}
-
-export function stats(input: number[]): Stats | null {
-  const v = input.filter((x) => Number.isFinite(x));
-  if (!v.length) return null;
-  const sorted = [...v].sort((a, b) => a - b);
-  const n = v.length;
-  const sum = v.reduce((a, b) => a + b, 0);
-  const mean = sum / n;
-  const median = quantile(sorted, 0.5);
-  const variance = v.reduce((a, b) => a + (b - mean) ** 2, 0) / n;
-  const mad = quantile([...v.map((x) => Math.abs(x - median))].sort((a, b) => a - b), 0.5);
-  return {
-    n,
-    mean,
-    median,
-    min: sorted[0],
-    max: sorted[n - 1],
-    sd: Math.sqrt(variance),
-    mad,
-    sum,
-    first: v[0],
-    last: v[n - 1],
-  };
-}
-
-export function quantile(sortedAsc: number[], q: number): number {
-  if (!sortedAsc.length) return NaN;
-  const pos = (sortedAsc.length - 1) * q;
-  const lo = Math.floor(pos);
-  const hi = Math.ceil(pos);
-  return lo === hi ? sortedAsc[lo] : sortedAsc[lo] + (sortedAsc[hi] - sortedAsc[lo]) * (pos - lo);
-}
+// Plain statistics, in stats.ts so the server can use them without the app's language layer.
+export { stats, quantile, theilSen, type Stats } from './stats';
 
 /** Trailing rolling mean over `window` days. Null until enough observations exist. */
 export function rollingMean(s: Point[], window: number, minPoints = Math.ceil(window / 2)): Point[] {
@@ -375,6 +333,16 @@ export function loadRatio(s: Point[]): { acute: number | null; chronic: number |
   };
 }
 
+/**
+ * The heart rate from which a minute counts as active: 40% of heart-rate reserve (Karvonen), the
+ * lower edge of moderate intensity, with a maximum of 208 − 0.7 × age (Tanaka). Null when the
+ * resting rate is at or past that maximum.
+ */
+export function activeHeartRate(age: number, restingHr: number): number | null {
+  const maxHr = 208 - 0.7 * age;
+  return maxHr <= restingHr ? null : Math.round(restingHr + 0.4 * (maxHr - restingHr));
+}
+
 /** Bedtime consistency: SD of clock time, handling the midnight wrap. */
 export function bedtimeConsistency(days: DailyRecord[]): { meanMin: number; sdMin: number; n: number } | null {
   const mins = days
@@ -389,29 +357,9 @@ export function bedtimeConsistency(days: DailyRecord[]): { meanMin: number; sdMi
 }
 
 
-/** Where the sleep-need estimate stops: never below 7 h, nor above 8.5 h, and 7.5 h before any nights. */
-export const NEED_ESTIMATE = { floor: 420, ceiling: 510, fallback: 450 } as const;
-
-/**
- * Personal sleep-need estimate: the median of your own recorded nights, clamped
- * to never fall below 7 h — chronic restriction must not be allowed to redefine
- * "enough" (Van Dongen 2003) — nor above 8.5 h. One definition, shared by
- * readiness, the debt insight and the duration insights, so no two cards can
- * ever argue about what a full night means.
- */
-export function estimatedSleepTarget(days: DailyRecord[]): number {
-  const nights = days
-    .map((d) => d.sleep?.minutesAsleep ?? null)
-    .filter((m): m is number => m !== null);
-  const st = stats(nights);
-  return st ? Math.min(NEED_ESTIMATE.ceiling, Math.max(NEED_ESTIMATE.floor, st.median)) : NEED_ESTIMATE.fallback;
-}
-
-/**
- * The sleep need every night is judged against: the person's own figure when
- * they've set one (a goal, on the Settings page), else the estimate from these nights.
- */
-export const sleepNeedFor = (days: DailyRecord[], set?: number | null): number => set ?? estimatedSleepTarget(days);
+// The sleep need and the sleep score's norms live with the score, in sleep.ts, where the server can
+// read them without the app's words.
+export { NEED_ESTIMATE, estimatedSleepTarget, sleepNeedFor, sleepNorms } from './sleep';
 
 // ─────────────────────────────────────────────────────────────── readiness
 
@@ -457,6 +405,12 @@ export const BATTERY_TIERS = [
 
 export const batteryTier = (score: number) => BATTERY_TIERS.find((tier) => score >= tier.min) ?? BATTERY_TIERS[3];
 
+/** The battery's contributors the second half of a cycle moves (cycleAdjusted): the ones it can soften. */
+const CYCLE_MOVES: ReadonlySet<ReadinessPartId> = new Set(['hrv', 'restingHr', 'skinTemp']);
+
+/** Where every morning's battery starts, before each contributor adds or takes away its points. */
+export const BATTERY_START = 70;
+
 /**
  * Readiness v2 — grounded in the published literature rather than intuition.
  *
@@ -497,14 +451,21 @@ export const batteryTier = (score: number) => BATTERY_TIERS.find((tier) => score
  * changes, that component waits for its own baseline ("calibrating") rather
  * than reading the new device's numbers as a change in you.
  *
+ * With cycle tracking on (and allowed for on other pages), `judged` is the same
+ * days with each second-half night moved back by how far this person's own
+ * cycle moves it (cycleAdjusted in cycle.ts). A penalty from HRV, resting heart
+ * rate or skin temperature is softened to what the judged nights would cost,
+ * never past zero, as every other page allows for the cycle: it can explain a
+ * reading away, never add one. Each detail still shows the person's own readings.
+ *
  * For scale: Fitbit/Google's current readiness uses exactly HRV + RHR + sleep;
  * Whoop weights HRV at roughly 60%; Oura leans hard on temperature deviation.
  * This sits between them, with every weight visible below and every component
  * returned as a signed, explained contribution.
  */
-export function readiness(days: DailyRecord[], needSet?: number | null): Readiness {
+export function readiness(days: DailyRecord[], needSet?: number | null, judged: DailyRecord[] | null = null): Readiness {
   const parts: ReadinessPart[] = [];
-  let score = 70;
+  let score = BATTERY_START;
   // Only last night counts. The window ends on the user's today, and a reading from before yesterday is
   // history: with the watch on its charger for three days the honest answer is no score, not a confident
   // one built from the last night it happened to see.
@@ -688,6 +649,20 @@ export function readiness(days: DailyRecord[], needSet?: number | null): Readine
         contribution: c,
         detail: t(acuteZ > 2.0 ? 'today.battery.parts.strain.high' : 'today.battery.parts.strain.raised'),
       });
+    }
+  }
+
+  // ── 8. The cycle, while it's allowed for: a penalty softened, never added ──
+  if (judged) {
+    const byDate = new Map(judged.map((d) => [d.date, d]));
+    const aware = readiness(days.map((d) => byDate.get(d.date) ?? d), needSet).parts;
+    for (const p of parts) {
+      if (!CYCLE_MOVES.has(p.id) || p.contribution >= 0) continue;
+      const allowed = Math.min(0, Math.max(p.contribution, aware.find((a) => a.id === p.id)?.contribution ?? 0));
+      if (allowed === p.contribution) continue;
+      score += allowed - p.contribution;
+      p.detail = t('today.battery.parts.cycle', { detail: p.detail, all: allowed === 0 ? 'yes' : 'no' });
+      p.contribution = allowed;
     }
   }
 
@@ -1230,19 +1205,6 @@ export function sleepArchitecture(s: SleepSession): SleepArchitecture | null {
 }
 
 // ─────────────────────────────────────────────────── body composition
-
-/** Theil–Sen slope: the median of all pairwise slopes. Robust for sparse manual logs. */
-export function theilSen(points: { x: number; y: number }[]): number | null {
-  if (points.length < 2) return null;
-  const slopes: number[] = [];
-  for (let i = 0; i < points.length; i++) {
-    for (let j = i + 1; j < points.length; j++) {
-      const dx = points[j].x - points[i].x;
-      if (dx !== 0) slopes.push((points[j].y - points[i].y) / dx);
-    }
-  }
-  return stats(slopes)?.median ?? null;
-}
 
 export interface WeightTrend {
   kgPerWeek: number;

@@ -1,4 +1,4 @@
-import React, { useId, useState } from 'react';
+import React, { useId, useLayoutEffect, useRef, useState } from 'react';
 import { ChevronDown, Info } from 'lucide-react';
 import { BASELINE_DAYS, BASELINE_MIN_READINGS, OFF_Z, type Band, type Comparison, stats, type Point } from '../pipeline/derive';
 import { t, type MessageKey, type Values } from '../i18n';
@@ -28,6 +28,20 @@ export const DOMAIN = {
   data: { text: 'text-amber-400', hex: 'var(--amber-400)' },
   wellbeing: { text: 'text-violet-400', hex: 'var(--violet-400)' },
   cycle: { text: 'text-pink-400', hex: 'var(--pink-400)' },
+  nutrition: { text: 'text-purple-400', hex: 'var(--purple-500)' },
+} as const;
+
+/**
+ * The food log's colours: protein in the Nutrition page's own plum, carbs sky and fat honey,
+ * with carbs between the other two so every neighbouring pair stays apart for colour-blind eyes,
+ * fibre lime, for plants, and water teal, apart from the carbs' sky.
+ */
+export const MACRO = {
+  protein: 'var(--purple-500)',
+  carbs: 'var(--sky-400)',
+  fat: 'var(--amber-400)',
+  fibre: 'var(--lime-400)',
+  water: 'var(--teal-400)',
 } as const;
 
 /**
@@ -50,20 +64,68 @@ export const GRID = 'var(--color-zinc-800)';
 
 // ────────────────────────────────────────────────────────────────── layout
 
+/** The colour a card glows in (see .glow in theme.css), as its style. */
+export const glowStyle = (colour: string) => ({ '--glow': colour }) as React.CSSProperties;
+
+/**
+ * Puts a card's score glow where the dot in its pill sits (--glow-x and --glow-y), and keeps it there
+ * as the card resizes and once the web fonts have set the text before the dot.
+ */
+export function useGlowFrom(card: React.RefObject<HTMLElement | null>, dot?: React.RefObject<HTMLElement | null>) {
+  useLayoutEffect(() => {
+    const box = card.current;
+    if (!box || !dot) return;
+    const place = () => {
+      const from = dot.current;
+      if (!from) return;
+      const b = box.getBoundingClientRect();
+      const d = from.getBoundingClientRect();
+      box.style.setProperty('--glow-x', `${d.left + d.width / 2 - b.left}px`);
+      box.style.setProperty('--glow-y', `${d.top + d.height / 2 - b.top}px`);
+    };
+    place();
+    const observer = new ResizeObserver(place);
+    observer.observe(box);
+    let live = true;
+    document.fonts?.ready.then(() => {
+      if (live) place();
+    });
+    return () => {
+      live = false;
+      observer.disconnect();
+    };
+  }, [card, dot]);
+}
+
 export function Card({
   children,
   className = '',
   as: Tag = 'section',
   label,
+  glow,
+  glowFrom,
 }: {
   children: React.ReactNode;
   className?: string;
   as?: any;
   /** A name for the card when nothing in it names it. */
   label?: string;
+  /** A colour for a faint glow, in the dark theme: from the card's top right, or from `glowFrom`. */
+  glow?: string;
+  /** The dot in a score's pill, for a score glow that starts there, as the body battery's does. */
+  glowFrom?: React.RefObject<HTMLElement | null>;
 }) {
+  const card = useRef<HTMLElement>(null);
+  useGlowFrom(card, glow ? glowFrom : undefined);
   return (
-    <Tag aria-label={label} className={`bg-card border border-card-edge rounded-2xl ${className}`}>{children}</Tag>
+    <Tag
+      ref={card}
+      aria-label={label}
+      className={`bg-card border border-card-edge rounded-2xl ${glow ? (glowFrom ? 'glow-score' : 'glow') : ''} ${className}`}
+      style={glow ? glowStyle(glow) : undefined}
+    >
+      {children}
+    </Tag>
   );
 }
 
@@ -71,11 +133,15 @@ export function CardHead({
   title,
   hint,
   right,
+  hintBySummary = false,
 }: {
   title: string;
   hint?: React.ReactNode;
   right?: React.ReactNode;
+  /** The hint explains the summary's numbers, so on wider screens it sits under them. */
+  hintBySummary?: boolean;
 }) {
+  const bySummary = hintBySummary && !!right && !!hint;
   // A long explanation folds behind an (i) on a phone, where it would push the card's content off
   // the screen; from md up there's room and it always shows.
   const long = typeof hint === 'string' && hint.length > 140;
@@ -98,9 +164,18 @@ export function CardHead({
             </button>
           )}
         </h3>
-        {right && <div className="shrink-0 text-caption text-zinc-500">{right}</div>}
+        {right && (
+          <div className={`shrink-0 text-caption text-zinc-500 ${bySummary ? 'md:text-right' : ''}`}>
+            {right}
+            {bySummary && <div className="hidden md:block mt-1 leading-relaxed">{hint}</div>}
+          </div>
+        )}
       </div>
-      {hint && <div className={`text-caption text-zinc-500 mt-1.5 leading-relaxed ${long && !open ? 'hidden md:block' : ''}`}>{hint}</div>}
+      {hint && (
+        <div className={`text-caption text-zinc-500 mt-1.5 leading-relaxed ${bySummary ? 'md:hidden' : ''} ${long && !open ? 'hidden md:block' : ''}`}>
+          {hint}
+        </div>
+      )}
     </div>
   );
 }
@@ -118,9 +193,12 @@ export const Label = ({ children, className = '' }: { children: React.ReactNode;
  */
 export function Contributors({
   heading = 'text-eyebrow uppercase text-zinc-500 mb-1',
+  label = t('ui.contributors'),
   children,
 }: {
   heading?: string;
+  /** What the fold is called; "Contributors" unless it holds something else, such as how a figure is worked out. */
+  label?: string;
   children: React.ReactNode;
 }) {
   const [open, setOpen] = useState(false);
@@ -134,10 +212,10 @@ export function Contributors({
         onClick={() => setOpen(!open)}
         className="md:hidden w-full cursor-pointer flex items-center justify-between min-h-11 border-t border-zinc-800/80 text-eyebrow uppercase text-zinc-500 hover:text-zinc-300 transition-colors"
       >
-        {t('ui.contributors')}
+        {label}
         <ChevronDown size={14} aria-hidden className={`transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
-      <div className={`hidden md:block ${heading}`}>{t('ui.contributors')}</div>
+      <div className={`hidden md:block ${heading}`}>{label}</div>
       <div id={id} className={open ? undefined : 'hidden md:block'}>{children}</div>
     </div>
   );
@@ -207,14 +285,27 @@ const BAND_COPY: Record<Band, { label: MessageKey; cls: string }> = {
 };
 
 /**
- * A score's tier in a pill: its name after a glowing dot of its colour, as the sleep score and the
- * body battery show it. Set in the body face even inside a title.
+ * A score's tier in a pill: its name in capitals after a glowing dot of its colour, as the sleep
+ * score and the body battery show it. Set in the body face even inside a title.
  */
-export function StatusPill({ name, dot, glow = `0 0 10px ${tint(dot, 60)}`, className = '' }: { name: string; dot: string; glow?: string; className?: string }) {
+export function StatusPill({ name, dot, ink = dot, glow = `0 0 10px ${tint(dot, 45)}`, className = '', dotRef }: {
+  name: string;
+  /** The status's colour: the dot, and the pill's tint and edge (.status-pill). */
+  dot: string;
+  /** The status's colour for words, which the name is drawn in a shade of; the dot's own unless that's too dark to read. */
+  ink?: string;
+  glow?: string;
+  className?: string;
+  /** The dot, for a card whose score glow starts there. */
+  dotRef?: React.Ref<HTMLSpanElement>;
+}) {
   return (
-    <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-zinc-900 border border-zinc-800 shadow-sm font-sans ${className}`}>
-      <span className="w-2.5 h-2.5 rounded-full inline-block shrink-0" style={{ backgroundColor: dot, boxShadow: glow }} />
-      <span className="text-detail font-semibold text-zinc-200 tracking-tight">{name}</span>
+    <span
+      className={`status-pill inline-flex items-center gap-1.5 px-3 py-1 rounded-full border shadow-sm font-sans ${className}`}
+      style={{ '--pill': dot, '--pill-ink': ink } as React.CSSProperties}
+    >
+      <span ref={dotRef} className="w-2.5 h-2.5 rounded-full inline-block shrink-0" style={{ backgroundColor: dot, boxShadow: glow }} />
+      <span className="status-pill-word text-caption font-semibold uppercase tracking-widest">{name}</span>
     </span>
   );
 }

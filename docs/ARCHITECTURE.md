@@ -135,6 +135,13 @@ list reading came from (`dataSource`: platform, recording method, device, app).
 Settings page (`src/views/SourcesCard.tsx`) shows each source and sets the person's choices, which
 are kept on `users.sources` (`GET` and `PUT /api/sources`).
 
+- **A source is its platform and name.** `parseSource` gives each one an id such as
+  `FITBIT:Fitbit Air`: the device's name, else the app's, else the platform's. Google writes its
+  own devices' names with and without "Google" in front (the Fitbit Air was "Google Fitbit Air"
+  until 4 September 2026), so on the FITBIT platform "Google " is dropped and one device stays one
+  source. Readings Google works out or is given by hand with no device named, such as cardio
+  fitness and heart rate zones, come as `FITBIT:Fitbit`, and the app calls that source the Google
+  Health app.
 - **Every source's reading is kept.** When more than one source reported a list stream on a day
   (sleep, HRV, resting heart rate, breathing rate, skin temperature, blood oxygen, cardio fitness,
   weight, body fat), normalisation also reads each source's points alone. The stored day keeps
@@ -219,7 +226,8 @@ Labs are experiments that look for patterns over several weeks. Their arithmetic
 `src/pipeline/labs.ts`, and their cards are in `src/views/LabsView.tsx`. They look for:
 - breathing, oxygen and time awake off together at night;
 - strain across four signals: resting heart rate, breathing, HRV and skin temperature;
-- heart rate dipping at night;
+- heart rate dipping at night, rest to rest: the daytime side leaves out active minutes (40% of
+  heart-rate reserve or above), so a workout doesn't widen the drop;
 - shifts in HRV entropy;
 - fast heart rate during sleep;
 - irregular rhythm notifications, as the device reports them.
@@ -245,7 +253,7 @@ Google Health lets apps add periods but not read them back, so cycles are found 
 - **Sleeping heart rate is the night's floor:** the tenth percentile of the one-minute heart rate
   during the main sleep (`src/pipeline/sleepHrFloor.ts`). The luteal phase lifts the body's floor,
   and the floor shows it more clearly than Google's non-REM average does: on mcPHASES the finder
-  placed 52% of period starts within 3 days with the floor against 37% with the average. The
+  finds 33% of period starts within 3 days with the floor against 24% with the average. The
   server computes it after each sync from the minutes it fetches, for every night with a main
   sleep (the one the person's choice of device reads) and at least half its minutes recorded, and stores it as the stream
   `sleep-heart-rate-floor`, so it outlives the minute data. Older nights are filled in by the history
@@ -274,15 +282,13 @@ Google Health lets apps add periods but not read them back, so cycles are found 
   way, it's counted back from the day the next period is likely, once that day has come.
 - **The next period** is a range from the last six cycles' lengths, once there are three. With two,
   it's an early guess: their lengths, two days wider either side.
-- **How accurate.** On mcPHASES with nothing logged, cycles show for 63% of three-month stretches.
-  52% of starts are found within 3 days and 56% within 5, and 77% of the starts shown are real.
-  With the first period logged, 67% of the later starts are within 3 days and 79% within 5. Of
-  the ended cycles shown, 53% have their second half within 3 days of the hormone-marked one (78%
-  with every period logged). Each person is scored with shapes made without their own nights, and
-  the sleeping heart rate is the night's floor, computed from mcPHASES's minute heart rate the
-  way the server computes it. With Google's non-REM heart rate instead, 37% of starts are within 3
-  days and cycles show for 50% of stretches. A strong fever just after a period can pull a start a
-  few days early.
+- **How accurate.** `npm run eval:cycles` measures it on mcPHASES (see `scripts/cycle-eval`).
+  With nothing logged, cycles show for 42% of people's three months of nights. 33% of period
+  starts are found within 3 days and 36% within 5, and 77% of the starts shown are real. 81% of
+  the finished cycles shown have their second half within 3 days of the one the hormone tests mark.
+  Once the first period is logged, 68% of the later starts are found within 3 days and 80%
+  within 5. With every period logged, 79% of second halves are within 3 days. A strong fever just
+  after a period can pull a start a few days early.
 - **Logs win.** A logged or confirmed start beats a found one nearby and counts twice as much in the
   typical cycle. Only logged periods have a length.
 - **Older nights** come from history queries grouped by day, 240 days back.
@@ -320,12 +326,58 @@ Google Health lets apps add periods but not read them back, so cycles are found 
     while it's off on both, as the strain radar does;
   - the strain radar counts a signal the cycle explains as in, and says so;
   - a pill that would call a reading unusual says "usual for this part of your cycle" instead, when
-    the judged reading is usual.
+    the judged reading is usual;
+  - the body battery softens a penalty from HRV, resting heart rate or skin temperature to what the
+    judged nights would cost, never past zero, and the contributor says so ("usual for this part
+    of your cycle").
 
-  The body battery's score and every number shown stay the person's own readings.
+  Every number shown stays the person's own reading.
 
 `cycle.test.ts` holds it to both kinds of error on noisy nights: most starts found in people who
 have cycles, and almost no cycle shown to people who don't.
+
+## Nutrition
+
+The Nutrition page reads the food log in Google Health (`nutrition-log`): what people log in the
+Google Health app, or in an app that writes to it through Health Connect or Apple Health. Healthier
+only reads it; there's no food search or logging of its own, and nothing is guessed from photos.
+
+- **Reading** (`src/pipeline/nutrition.ts`). The stream is listed, not rolled up, so meals keep
+  their times: one point per logged food, with its energy, carbohydrate, fat, and protein and fibre
+  among its nutrients. Each source's foods on a day are folded into one day before the registry
+  applies them (`combineNutritionPoints`), so two apps logging the same day are two readings to
+  choose between, never added together. Foods within 45 minutes of each other are one meal.
+- **What counts** (`src/pipeline/eating.ts`). A day counts toward averages and maintenance only
+  when it was logged in full: meals running six hours or more into the evening, or a dinner and one
+  more main meal by meal type, and at least 800 kcal. Today is never judged.
+- **Maintenance** is what the body burns, from what was eaten on the full days plus the energy of
+  the weight lost (7,700 kcal a kilo), over the shortest block of 3, 4, 6 or 8 weeks that gets it
+  within about ±100 kcal (never past ±250). The weight's slope is Theil–Sen; the margin comes from
+  the weigh-ins' scatter around it and the spread of the days eaten. The page's trend line is the
+  same block worked out every 7 days, so the number is today's and the line shows how it moved.
+  The devices' own estimate (`totalKcal`) is shown beside it, never mixed in.
+- **Judging.** The average day holds protein and fibre to their targets (on target, close at 85%,
+  else short) and carbs and fat to the adult ranges (45–65% and 20–35% of energy; US National
+  Academies, 2005). A single day is described, never judged: today's plate says how far it is from
+  maintenance and remarks only on protein well behind late in the day, or a mix far from the
+  person's own usual.
+- **Water** (`hydration-log`) comes as Google's total for each day, so it has no times; a day
+  summed to nothing was never logged. Today's plate and the water chart hold what was logged to
+  the water target. A day without a log has no bar rather than an empty one, and today is drawn
+  but not counted. Water in food and drinks that weren't logged aren't in it, so the page says
+  nothing about hydration itself.
+
+- **Insights** (`src/pipeline/insights/cards/nutrition.ts`). Three patterns from the person's own
+  days: what was eaten after short nights, the morning resting heart rate after late dinners, and
+  deep sleep after higher-fibre days. Each is an exploratory association, never a cause: Welch's
+  test at p < 0.05, eight days or more on each side, a difference worth saying (150 kcal, 2 bpm,
+  5 minutes), and the earlier and later halves of the condition's days leaning the same way. Then
+  a week well above or below maintenance, and an evening nudge when one dinner can close the gap
+  to the protein target.
+
+The page shows in the menu only while food has been logged in the window. Its colour is plum
+(`DOMAIN.nutrition`); the macros are plum protein, sky carbs and honey fat, carbs in the middle so
+every neighbouring pair stays apart for colour-blind eyes, lime fibre and teal water.
 
 ## Goals
 
@@ -336,7 +388,17 @@ stores them on `users`, sends them with the dataset, and rejects anything off it
 bounds. Every ring, goal line, label and insight reads them from there (the screens through
 `useGoals`, the engine through `InsightOptions.goals`), so no screen repeats a goal as a literal.
 Sleep need stays automatic, the median of your nights held between 7 and 8.5 hours, until it's
-set; set, it replaces the estimate everywhere, the body battery included. The WHO's 150 minutes a
+set; set, it replaces the estimate everywhere, the body battery and the sleep score included.
+Protein works the same way: automatic at 1.4 g per kg of the latest weigh-in until it's set. Fibre
+is 30 g a day and water 2.0 litres unless set. Protein, fibre and water arrived after the others,
+so a page that doesn't send them keeps their defaults.
+
+The sleep score holds each night to the person's own norms (`sleepNorms` in `src/pipeline/sleep.ts`):
+full duration marks from their sleep need to 9 hours, and full restoration marks at their usual
+share of deep and REM sleep, never a higher bar than 45%. Deep sleep falls with age and staging is
+what a wrist reads least well, so a night is held to the person's own usual rather than a young
+adult's. The server answers the history's sleep scores with the norms it works out from the same
+window, so a record is measured against the same bar. The WHO's 150 minutes a
 week is a guideline rather than a goal, so it's a constant beside them, not a setting.
 
 ## Type roles
@@ -426,7 +488,9 @@ tests answer the same queries from `MemoryStore`.
 
 Stored rows are *processed* data. When normalisation changes (`registry.ts`, `normalize.ts`, sleep
 parsing) or a stored shape changes, bump `PIPELINE_VERSION`: every user is rebuilt with a full
-sync, and their dashboard shows onboarding until it completes.
+sync, and their dashboard shows onboarding until it completes. A stream that's now fetched another way than its
+stored days were (the food log moved from daily totals to listed foods) starts over on its own
+instead: the server sees the stored mode differ, purges that stream, and fetches it again.
 
 ## Demo mode
 

@@ -1,5 +1,5 @@
 import type { CivilDate } from '../lib/date';
-import type { DailyRecord } from '../types/health';
+import type { DailyRecord, DayNutrition, MealKind } from '../types/health';
 
 /**
  * The food diary: what was eaten, item by item, written by Claude over MCP (server/mcp.ts) or
@@ -150,8 +150,26 @@ export function mealsOf(entries: FoodEntry[]): { meal: Meal; entries: FoodEntry[
 }
 
 /**
+ * When each meal is put on the day's clock. The diary has no times, only meals, so these are
+ * nominal: the meal clock shows the diary's days at them.
+ */
+export const MEAL_MINUTES: Record<Meal, number> = { breakfast: 8 * 60, lunch: 12 * 60, meal2: 15 * 60, snack: 15 * 60 + 30, dinner: 19 * 60, evening: 21 * 60 + 30 };
+
+const MEAL_KIND: Partial<Record<Meal, MealKind>> = { breakfast: 'breakfast', lunch: 'lunch', dinner: 'dinner' };
+
+/** A day's diary entries as the day's food (DayNutrition), meals in clock order. */
+export function nutritionOf(list: FoodEntry[]): DayNutrition {
+  const t = totalsOf(list);
+  const meals = mealsOf(list)
+    .map((m) => ({ minutes: MEAL_MINUTES[m.meal], kcal: Math.round(m.totals.kcal), proteinG: Math.round(m.totals.protein), carbsG: Math.round(m.totals.carbs), fatG: Math.round(m.totals.fat) }))
+    .sort((a, b) => a.minutes - b.minutes);
+  const kinds = [...new Set(list.map((e) => MEAL_KIND[e.meal]).filter((k): k is MealKind => k !== undefined))];
+  return { kcal: Math.round(t.kcal), proteinG: Math.round(t.protein), carbsG: Math.round(t.carbs), fatG: Math.round(t.fat), fibreG: null, meals, mealKinds: kinds };
+}
+
+/**
  * The days with the diary's food in place of a diary app's: a day with entries takes its
- * energy and macros from them. Other days are left as they are. Returns new records.
+ * food from them. Other days are left as they are. Returns new records.
  */
 export function applyFoodLog(days: DailyRecord[], entries: FoodEntry[]): DailyRecord[] {
   if (!entries.length) return days;
@@ -159,13 +177,9 @@ export function applyFoodLog(days: DailyRecord[], entries: FoodEntry[]): DailyRe
   return days.map((d) => {
     const list = dated.get(d.date);
     if (!list) return d;
-    const t = totalsOf(list);
     return {
       ...d,
-      caloriesKcal: Math.round(t.kcal),
-      proteinG: Math.round(t.protein),
-      carbsG: Math.round(t.carbs),
-      fatG: Math.round(t.fat),
+      nutrition: nutritionOf(list),
       present: d.present.includes('nutrition-log') ? d.present : [...d.present, 'nutrition-log'],
       sourceByType: { ...d.sourceByType, 'nutrition-log': DIARY_SOURCE },
     };
@@ -219,8 +233,8 @@ export function savedMealEntries(m: SavedMeal, date: CivilDate, portion = 1, mea
 /** The mean of the days that have food logged among the seven ending `end`. */
 export function weekAverage(days: DailyRecord[], end: CivilDate): { kcal: number; protein: number; days: number } | null {
   const start = new Date(Date.parse(end) - 6 * 86_400_000).toISOString().slice(0, 10);
-  const logged = days.filter((d) => d.date >= start && d.date <= end && (d.caloriesKcal ?? 0) > 0);
+  const logged = days.filter((d) => d.date >= start && d.date <= end && (d.nutrition?.kcal ?? 0) > 0);
   if (!logged.length) return null;
   const sum = (f: (d: DailyRecord) => number) => logged.reduce((a, d) => a + f(d), 0);
-  return { kcal: sum((d) => d.caloriesKcal ?? 0) / logged.length, protein: sum((d) => d.proteinG ?? 0) / logged.length, days: logged.length };
+  return { kcal: sum((d) => d.nutrition?.kcal ?? 0) / logged.length, protein: sum((d) => d.nutrition?.proteinG ?? 0) / logged.length, days: logged.length };
 }

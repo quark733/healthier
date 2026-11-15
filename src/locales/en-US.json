@@ -58,7 +58,8 @@
     "celsius": "°C",
     "cm": "cm",
     "perHour": "/h",
-    "grams": "g"
+    "grams": "g",
+    "litres": "L"
   },
   "app": {
     "name": "Healthier",
@@ -648,6 +649,10 @@
           "title": "Body insights",
           "description": "What your weigh-ins add up to over time, measured against your own trend."
         },
+        "nutrition": {
+          "title": "Nutrition insights",
+          "description": "How what you eat and the rest of your days go together, worked out from your own logs."
+        },
         "cycle": {
           "title": "Cycle insights",
           "description": "What repeats across your cycles, found in your own nights and your log."
@@ -666,9 +671,34 @@
         "cardio": "Vitals",
         "sleep": "Sleep",
         "body": "Body",
+        "nutrition": "Nutrition",
         "data": "Data",
         "movement": "Activity",
         "cycle": "Cycle"
+      }
+    },
+    "nutrition": {
+      "shortNights": {
+        "title": "Short nights, bigger appetite",
+        "text": "After the {count} nights you slept under {line}, you ate about {kcal} kcal more the next day than after longer nights. Sleep studies find much the same."
+      },
+      "lateDinners": {
+        "title": "Late dinners show in your morning heart rate",
+        "text": "On the {count} nights your last meal came within {hours} hours of bed, your resting heart rate the next morning was {bpm} bpm higher than after earlier dinners.",
+        "action": "Finishing dinner earlier on a few nights would show whether it's the meal."
+      },
+      "fibreDeepSleep": {
+        "title": "More fibre, more deep sleep",
+        "text": "On days you ate {grams} g of fibre or more, your deep sleep that night ran about {minutes} minutes longer than after lower-fibre days."
+      },
+      "weekBalance": {
+        "title": "{side, select, over {A week above your maintenance} other {A week below your maintenance}}",
+        "text": "You ate {side, select, over {more} other {less}} than your maintenance on {count} of the last {days} days, about {kcal} kcal {side, select, over {over} other {under}} across the week, or roughly {kg} kg."
+      },
+      "proteinBehind": {
+        "title": "Protein is behind today",
+        "text": "You've had {got} g of your {target} g of protein so far{big, select, yes {, on a day of {steps} steps} other {}}.",
+        "action": "A dinner with about {grams} g of protein gets you there."
       }
     },
     "common": {
@@ -763,7 +793,7 @@
       },
       "vitalsFloor": {
         "titleEmpty": "No recent heart data",
-        "textEmpty": "Once your watch syncs your resting heart rate and HRV, this is where insights about them will show.",
+        "textEmpty": "Once your devices sync your resting heart rate and HRV, this is where insights about them will show.",
         "title": "Your latest readings",
         "text": "{known, select, both {Your resting heart rate is {restingHr} bpm and your HRV is {hrv} ms.} restingHr {Your resting heart rate is {restingHr} bpm.} other {Your HRV is {hrv} ms.}}",
         "steady": " Both are inside your usual range."
@@ -775,6 +805,12 @@
         "textLatest": "Your latest weigh-in was {weight} kg on {date}. A few more weigh-ins over the next weeks will show your trend.",
         "title": "No clear change in your weight",
         "text": "Your weight trend is moving by less than {threshold} kg a week either way. Your latest weigh-in was {weight} kg on {date}."
+      },
+      "nutritionFloor": {
+        "title": "Your eating this week",
+        "text": "{count, plural, one {On the one day you logged in full this week, you ate about {kcal} kcal and {protein} g of protein.} other {On the # days you logged in full this week, you ate about {kcal} kcal and {protein} g of protein a day.}}",
+        "titleEmpty": "Nothing logged in full this week",
+        "textEmpty": "Days with meals logged from the morning into the evening count here. Log in Google Health, or in an app that writes to it."
       },
       "cycleFloor": {
         "title": "{known, select, yes {Day {day} of your cycle} other {Your cycles}}",
@@ -1127,7 +1163,7 @@
         "titleNew": "Still getting to know your sleep",
         "textNew": "Your sleep records start on {date}, so there {nights, plural, one {is # night} other {are # nights}} so far. Comparisons will get sharper as more nights come in.",
         "titleThin": "Some nights have no record",
-        "textThin": "Your watch recorded sleep on {recorded} of the last {nights, plural, one {# night} other {# nights}}. Nights without a record are left out of your averages rather than counted as zero."
+        "textThin": "Your devices recorded sleep on {recorded} of the last {nights, plural, one {# night} other {# nights}}. Nights without a record are left out of your averages rather than counted as zero."
       },
       "sleepGap": {
         "title": "A few nights are missing",
@@ -1167,7 +1203,7 @@
       },
       "mvpaUp": {
         "title": "More brisk activity this week",
-        "text": "You're averaging {count, plural, one {{minutes} minute} other {{minutes} minutes}} of brisk activity a day this week, up from {previous} last week. That's the kind of activity the guidelines count."
+        "text": "You're averaging {count, plural, one {{minutes} minute} other {{minutes} minutes}} of brisk activity a day this week, up from {previous} last week. The WHO recommends {target} minutes of it a week."
       },
       "mvpaDown": {
         "title": "Less brisk activity this week",
@@ -1385,26 +1421,21 @@
         }
       },
       "noData": "No data",
-      "composition": "Composed from HRV, resting heart rate, holistic sleep score & architecture against your personal {days}-day baselines, and multi-day ACWR training load.",
       "outOf": "/ 100",
       "noReadingsSince": "No readings since {date}",
       "notEnoughData": "Not enough data",
-      "confidence": {
-        "low": "Low confidence",
-        "medium": "Medium confidence",
-        "high": "High confidence"
-      },
-      "missing": "{count, plural, one {no {signals} last night} other {no {signals} last night}}",
+      "missing": "{count, plural, one {No {signals} last night} other {No {signals} last night}}",
       "missingSignals": {
         "hrv": "HRV",
         "restingHr": "resting heart rate",
         "sleep": "sleep"
       },
-      "calibrating": "{count, plural, one {{signals} calibrating to a new device} other {{signals} calibrating to a new device}}",
+      "calibrating": "{count, plural, one {Still calibrating {signals} to a new device} other {Still calibrating {signals} to a new device}}",
       "calibratingSignals": {
         "hrv": "HRV",
         "restingHr": "resting heart rate"
       },
+      "explainer": "Your body battery starts at {start} each morning. Each contributor then adds points (green) or removes them (red), depending on how it compares with what’s usual for you. So a −10 means that contributor took 10 points off today’s score.",
       "figure": {
         "empty": "Body battery, no score yet"
       },
@@ -1439,6 +1470,7 @@
           "label": "Skin temperature",
           "detail": "+{value} °C above your baseline"
         },
+        "cycle": "{detail} · {all, select, yes {usual for this part of your cycle} other {softened for this part of your cycle}}",
         "strain": {
           "label": "Recent strain",
           "high": "multi-day training load significantly above your 28-day baseline",
@@ -1621,22 +1653,20 @@
       "hint": "Average steps on each day of the week."
     },
     "steps": {
-      "title": "Daily steps",
-      "hint": "Solid bars cleared your goal of {goal}. Missing bars are days the tracker recorded nothing — they're excluded from every average on this page."
+      "title": "Daily steps"
     },
     "energy": {
       "title": "Active energy",
-      "hint": "Above your basal rate — the part you moved for."
+      "hint": "Above your basal rate."
     },
     "mix": {
       "title": "Intensity mix",
-      "vsToday": "avg vs today so far (min):",
+      "vsToday": "avg vs today (min):",
       "vsLatest": "avg vs latest (min):",
       "lightMinutes": "Light minutes",
       "moderateMinutes": "Moderate minutes",
       "vigorousMinutes": "Vigorous minutes",
       "pair": "{average}/{latest}",
-      "note": "<light>Light</light> minutes accumulate from daily life; <moderate>Moderate</moderate> and <vigorous>Vigorous</vigorous> are the ones guidelines count. {target, plural, one {# brisk minute a week is the usual target.} other {# brisk minutes a week is the usual target.}}",
       "light": "Light",
       "moderate": "Moderate",
       "vigorous": "Vigorous"
@@ -1677,11 +1707,11 @@
         },
         "duration": {
           "label": "Duration",
-          "detail": "{duration} asleep · full marks at 7–9h"
+          "detail": "{duration} asleep · full marks {same, select, yes {at {from}} other {from {from} to {to}}}"
         },
         "restoration": {
           "label": "Restoration",
-          "detail": "{percent}% deep + REM · full marks at 45%",
+          "detail": "{percent}% deep + REM · full marks at {own, select, yes {your usual {target}%} other {{target}%}}",
           "noStages": "no stage data · scored at the midpoint"
         },
         "efficiency": {
@@ -1697,64 +1727,53 @@
         "short": "Window",
         "value": "{bed} → {wake}",
         "shortValue": "{bed}–{wake}",
-        "hint": "asleep to awake",
         "more": "From falling asleep at {bed} to waking at {wake}."
       },
       "efficiency": {
         "label": "Efficiency",
         "short": "Efficiency",
-        "hint": "of time in bed spent asleep; 90%+ is good",
         "more": "{percent}% of your time in bed was spent asleep. 90% or more is good."
       },
       "cycles": {
         "label": "Cycles",
         "short": "Cycles",
-        "each": "~{minutes} min each",
-        "hint": "light → deep → REM loops, usually 90–110 min",
-        "more": "{count, plural, one {# light → deep → REM loop; 90–110 min is usual. Wrist staging can merge bouts, so cycles can look fewer and longer.} other {# light → deep → REM loops; 90–110 min is usual. Wrist staging can merge bouts, so cycles can look fewer and longer.}}",
-        "moreWithLength": "{count, plural, one {# light → deep → REM loop of about {minutes} min each; 90–110 min is usual. Wrist staging can merge bouts, so cycles can look fewer and longer.} other {# light → deep → REM loops of about {minutes} min each; 90–110 min is usual. Wrist staging can merge bouts, so cycles can look fewer and longer.}}"
+        "more": "{count, plural, one {# light → deep → REM loop; 90–110 min is usual. Your devices can merge bouts when they stage sleep, so cycles can look fewer and longer.} other {# light → deep → REM loops; 90–110 min is usual. Your devices can merge bouts when they stage sleep, so cycles can look fewer and longer.}}",
+        "moreWithLength": "{count, plural, one {# light → deep → REM loop of about {minutes} min each; 90–110 min is usual. Your devices can merge bouts when they stage sleep, so cycles can look fewer and longer.} other {# light → deep → REM loops of about {minutes} min each; 90–110 min is usual. Your devices can merge bouts when they stage sleep, so cycles can look fewer and longer.}}"
       },
       "remLatency": {
         "label": "REM latency",
         "short": "REM latency",
-        "hint": "to your first REM; usually 60–120 min",
         "more": "{minutes} min from falling asleep to your first REM; 60–120 min is usual. Unusually early REM is the shift to watch.",
         "moreUnknown": "Time from falling asleep to your first REM; 60–120 min is usual. Unusually early REM is the shift to watch."
       },
       "deepEarly": {
         "label": "Deep, first third",
         "short": "Deep early",
-        "hint": "of deep sleep came early; a high share is normal",
         "more": "{percent}% of the night’s deep sleep came in its first third. A high share is normal; a falling share over weeks matters more.",
         "moreUnknown": "How much of the night’s deep sleep came in its first third. A high share is normal; a falling share over weeks matters more."
       },
       "transitions": {
         "label": "Transitions",
         "short": "Transitions",
-        "hint": "stage changes per hour asleep",
         "more": "{count, plural, one {# stage change per hour asleep.} other {# stage changes per hour asleep.}}",
         "moreUnknown": "How often you switched stages, per hour asleep."
       },
       "awakenings": {
         "label": "Awakenings, 5 min+",
         "short": "Awakenings",
-        "hint": "wake-ups long enough to be staged",
-        "more": "{count, plural, =0 {No wake-ups of 5 min or more that the watch staged.} one {# wake-up of 5 min or more that the watch staged.} other {# wake-ups of 5 min or more that the watch staged.}}"
+        "more": "{count, plural, =0 {No wake-ups of 5 min or more that your devices staged.} one {# wake-up of 5 min or more that your devices staged.} other {# wake-ups of 5 min or more that your devices staged.}}"
       },
       "onset": {
         "label": "Fell asleep in",
         "short": "Asleep in",
-        "hint": "near zero night after night can mean sleep debt",
         "more": "{minutes} min to fall asleep. Near zero night after night can be a sign of sleep debt."
       },
       "awakeAfterOnset": {
         "label": "Awake after onset",
         "short": "Awake after",
-        "hint": "all wake time, including the ticks above the chart",
         "more": "{minutes} min awake after first falling asleep, including the brief restless wake-ups marked as ticks above the chart."
       },
-      "pick": "Tap a measure to see what it means.",
-      "caveat": "Wrist staging is an estimate and can merge bouts, so the trend against your own history says more than any one night.",
+      "pick": "Pick a measure to see what it means.",
       "empty": "No sleep session available to draw."
     },
     "lastSeven": {
@@ -1814,42 +1833,30 @@
     "window": {
       "title": "Sleep window",
       "empty": "No recorded nights in this span.",
-      "bars": "{bucket, select, day {One bar per night, bed to wake, coloured by stage.} week {One bar per week: its typical bedtime and time in bed, coloured by average stage.} other {One bar per month: its typical bedtime and time in bed, coloured by average stage.}}",
-      "lines": "{count, plural, one {The dashed lines are your average bedtime and wake time over this # night, shaded by how much they vary.} other {The dashed lines are your average bedtime and wake time over these # nights, shaded by how much they vary.}}",
-      "noLines": "Your average bedtime and wake time appear once there are three nights.",
-      "emptyRows": "{bucket, select, day {Empty rows are nights with no record.} week {Empty rows are weeks with no record.} other {Empty rows are months with no record.}}",
       "regularity": {
         "title": "Sleep regularity",
         "bands": {
           "excellent": {
-            "label": "VERY REGULAR",
-            "text": "You fall asleep and wake at nearly the same times every day."
+            "label": "VERY REGULAR"
           },
           "good": {
-            "label": "REGULAR",
-            "text": "Your timing holds fairly steady from night to night."
+            "label": "REGULAR"
           },
           "bad": {
-            "label": "IRREGULAR",
-            "text": "Your timing shifts by hours from night to night. Regular timing predicts how you feel better than total hours do."
+            "label": "IRREGULAR"
           },
           "critical": {
-            "label": "VERY IRREGULAR",
-            "text": "No steady schedule in these nights: your body clock rarely gets the same day twice."
+            "label": "VERY IRREGULAR"
           }
         },
-        "basis": "{count, plural, one {Scored from how often you're asleep or awake at the same clock times on back-to-back days (# pair of nights).} other {Scored from how often you're asleep or awake at the same clock times on back-to-back days (# pairs of nights).}}",
         "needsNights": "Needs five back-to-back recorded nights in this span."
       },
       "chart": "Sleep sessions against your average sleep window",
       "chartNoAverage": "Sleep sessions",
       "averageBed": "avg bed {time}",
-      "averageBedNarrow": "bed {time}",
       "averageWake": "avg wake {time}",
-      "averageWakeNarrow": "wake {time}",
       "stage": "{bucket, select, day {{date} · {stage} {minutes} min} other {{date} · {stage} {minutes} min a night}}",
-      "bedOffset": "{offset} bed",
-      "averageWindow": "avg window {bed}–{wake}"
+      "bedOffset": "{offset} bed"
     },
     "duration": {
       "title": "Sleep duration",
@@ -1949,7 +1956,7 @@
       "vo2Max": {
         "chip": "VO₂ max",
         "title": "Cardio fitness",
-        "hint": "Your watch’s VO₂ max estimate. It moves slowly, over weeks."
+        "hint": "The VO₂ max your devices estimate. It moves slowly, over weeks."
       },
       "latest": "latest {value}",
       "average": "{days}-day average {value}",
@@ -2042,97 +2049,33 @@
       "note": "Scale body fat is approximate, so its trend on the same scale says more than any one reading."
     }
   },
-  "nutrition": {
-    "empty": {
-      "title": "No food logged yet",
-      "detail": "Energy, protein, carbohydrate and fat come from a food diary app, such as MyFitnessPal, that shares with Google Health, directly or through Apple Health. Data streams, in Settings, shows what arrived."
-    },
-    "day": {
-      "today": "Today so far",
-      "latest": "Latest logged day, {date}",
-      "inProgress": "Today is still being logged, so it's left out of the averages below.",
-      "energy": "Energy",
-      "splitBar": "Energy from protein {protein} percent, carbohydrate {carbs} percent, fat {fat} percent",
-      "proteinPerKg": "{perKg} g protein per kg",
-      "split": "Energy from protein {protein}%, carbs {carbs}%, fat {fat}%"
-    },
-    "week": {
-      "title": "Last 7 days",
-      "hint": "Averages over the days you logged; a day without a log is left out, not counted as zero.",
-      "energy": "Energy a day"
-    },
-    "overTime": {
-      "title": "What you eat over time"
-    },
-    "summary": {
-      "daysLogged": "Days logged",
-      "daysLoggedValue": "{logged}<muted> of {total}</muted>",
-      "typicalDay": "Typical day",
-      "protein": "Protein a day",
-      "proteinGrams": "{grams} g",
-      "proteinPerKg": "{grams} g<muted> · {perKg} g per kg</muted>",
-      "split": "Energy from protein, carbs, fat",
-      "splitValue": "{protein}% · {carbs}% · {fat}%",
-      "balance": "Estimated balance",
-      "balanceValue": "{kcal} kcal a day<muted> · {days, plural, one {# day} other {# days}}</muted>"
-    },
-    "chips": {
-      "label": "Chart",
-      "energy": "Energy",
-      "protein": "Protein",
-      "macros": "Macros",
-      "balance": "Balance"
-    },
-    "energy": {
-      "title": "Energy eaten",
-      "hint": "Kilocalories logged each day. Days without a log show no bar."
-    },
-    "protein": {
-      "title": "Protein",
-      "hint": "Grams of protein logged each day.",
-      "hintWeight": "Grams of protein logged each day. Per kilo figures use your latest weigh-in, {weight} kg."
-    },
+  "food": {
     "macros": {
-      "title": "Protein, carbohydrate and fat",
-      "hint": "Grams logged each day of <protein>protein</protein>, <carbs>carbohydrate</carbs> and <fat>fat</fat>.",
       "protein": "Protein",
       "carbs": "Carbohydrate",
       "fat": "Fat"
     },
-    "balance": {
-      "title": "Estimated energy balance",
-      "hint": "Energy logged less energy burned, as your watch or phone estimates it. Both are estimates, so read the direction over weeks rather than any one day; a day logged only in part shows as a deficit it wasn't.",
-      "series": "{bucket, select, day {logged less burned} week {weekly average, logged less burned} other {monthly average, logged less burned}}"
-    },
     "burn": {
-      "title": "What you really burn",
-      "hint": "Worked out from your own numbers, the way MacroFactor does it: the food you logged over the last 4 weeks and what your weight actually did. If you ate 3,000 kcal a day and lost 0.5 kg a week, you burned about 3,550. No watch or formula guesses it. It's only as right as your logging: food that isn't logged reads as burning less.",
-      "notYet": "Needs at least 14 days of logged food in the last 4 weeks, and weigh-ins spread over 3 weeks or more. You have {logged} logged days so far.",
-      "value": "≈ {kcal} kcal a day",
-      "from": "From {days} logged days (on average {eaten} kcal eaten) and {weighIns} weigh-ins, a trend of {kg} kg a week.{confidence, select, low { Still firming up: give it a couple more weeks.} other {}}",
+      "title": "Calories for your goal",
+      "hint": "From the maintenance above: what you'd eat a day to lose weight at a few weekly paces, and the pace your weight goal needs. Tap one to make it your energy target.",
+      "notYet": "Shows once the maintenance above is worked out: it needs a few weeks of full logged days and weigh-ins.",
+      "from": "Maintenance: about {kcal} kcal a day.",
       "pace": "{goal, select, yes {Your goal: } other {}}{pct}% a week ({kg} kg)",
       "plan": "{kcal} kcal{macros, select, yes { · P {p} · C {c} · F {f} g} other {}}",
       "use": "{current, select, yes {In use} other {Use}}",
-      "note": "0.5–1% of bodyweight a week is the range advised for keeping muscle (Helms et al. 2014). Protein stays at your target; carbs take most of the change. MyFitnessPal keeps its own goal, so change it there too if you switch.",
+      "note": "0.5–1% of bodyweight a week is the range advised for keeping muscle (Helms et al. 2014). Protein stays at your target; carbs take most of the change.",
       "saved": "Your energy target is now {kcal} kcal."
     },
     "rest": {
-      "title": "Rest of today",
-      "hint": "What's left of today's targets, and a few everyday foods that would go towards the one furthest behind. Protein comes first while it's behind: it's what most helps keep muscle while eating less.",
-      "noTargets": "Add your targets below to see what's left of today.",
-      "leftValue": "{value} {unit} left",
-      "overValue": "{value} {unit} over",
       "ideas": "Ideas for the {grams} g of {focus, select, protein {protein} carbs {carbs} other {fat}} left:",
-      "foodValue": "{amount} g {focus, select, protein {protein} carbs {carbs} other {fat}} · {kcal} kcal",
-      "labels": "Typical values per portion; the product's own label is the one to log.",
-      "done": "Today's targets are met, or there's too little energy left for a portion."
+      "foodValue": "{amount} g {focus, select, protein {protein} carbs {carbs} other {fat}} · {kcal} kcal"
     },
     "diary": {
       "title": "Food diary",
-      "hint": "What you ate, meal by meal. Tell Claude what you're eating and it writes it here, using your food library's numbers; you can also paste lines below. Tap a weight to change it (the numbers follow), copy a meal to today, or save a meal you eat often and add it again with one tap. The bars follow energy and protein, the two that matter most while you diet; carbs and fat are shown as amounts, with a floor for fat. A day in the diary is that day's food: whatever a diary app like MyFitnessPal sent for it is set aside, so nothing counts twice. Days without diary entries keep the app's numbers, so your history and the burn estimate carry on.",
+      "hint": "What you ate, meal by meal. Tell Claude what you're eating and it writes it here, using your food library's numbers; you can also paste lines below. Tap a weight to change it (the numbers follow), copy a meal to today, or save a meal you eat often and add it again with one tap. The bars follow energy and protein, the two that matter most while you diet; carbs and fat are shown as amounts, with a floor for fat. A day in the diary is that day's food: whatever a diary app like MyFitnessPal sent for it is set aside, so nothing counts twice. Days without diary entries keep the app's numbers, so your history and maintenance carry on.",
       "prev": "Previous month",
       "next": "Next month",
-      "legend": "Amber: from the diary. Grey: from a diary app.",
+      "legend": "Purple: from the diary. Grey: from a diary app.",
       "meal": "{meal, select, breakfast {Breakfast} meal2 {Meal 2} lunch {Lunch} dinner {Dinner} evening {Evening} other {Snack}}",
       "macroLine": "{kcal} kcal · <p>P {pv}</p> · <c>C {cv}</c> · <f>F {fv}</f>",
       "grams": "{grams} g",
@@ -2395,7 +2338,7 @@
     },
     "noRhythm": {
       "title": "Healthier hasn't found your cycles yet",
-      "text": "Your nights haven't shown a cycle clearly enough to be sure of it. Wrist readings are often too faint for that, and it's common on hormonal contraception, when cycles vary a lot, or when the watch comes off at night.",
+      "text": "Your nights haven't shown a cycle clearly enough to be sure of it. Readings from your devices are often too faint for that, and it's common on hormonal contraception, when cycles vary a lot, or on nights your devices aren't worn.",
       "logged": "A period you log is certain, and shows your cycles straight away."
     },
     "now": {
@@ -2456,7 +2399,7 @@
     },
     "body": {
       "title": "Your body through the cycle",
-      "hint": "This cycle, night by night, against your last {count, plural, one {cycle} other {# cycles}}. The grey band is where your past cycles usually were on the same day. Skin temperature is the watch's change from your own baseline. Resting heart rate (basal) is your night's floor: the rate your heart sits at or below for the calmest tenth of your sleep.",
+      "hint": "This cycle, night by night, against your last {count, plural, one {cycle} other {# cycles}}. The grey band is where your past cycles usually were on the same day. Skin temperature is the change your devices measured from your own baseline. Resting heart rate (basal) is your night's floor: the rate your heart sits at or below for the calmest tenth of your sleep.",
       "hintFew": "This cycle so far, night by night. Your past cycles show as a band once there are three. Resting heart rate (basal) is your night's floor: the rate your heart sits at or below for the calmest tenth of your sleep.",
       "legend": {
         "mine": "This cycle",
@@ -2552,7 +2495,7 @@
   },
   "labs": {
     "intro": {
-      "lead": "Experimental views of <b>multi-week patterns in your wearable data</b>, each against your own usual range.",
+      "lead": "Labs are experimental views of multi-week patterns in your wearable data, each against your own usual range.",
       "notice": {
         "title": "Not a medical device",
         "text": "These cards don't detect, screen for or rule out any condition, and a quiet card isn't an all-clear. If you have symptoms or concerns, talk to a clinician."
@@ -2565,12 +2508,6 @@
       "label": "Labs",
       "count": "{count, plural, one {# lab} other {# labs}}",
       "hint": "tap one to open it"
-    },
-    "legend": {
-      "quiet": "nothing found",
-      "collecting": "collecting or waiting",
-      "reported": "from your device",
-      "found": "pattern found"
     },
     "sdb": {
       "title": "Sleep-disordered breathing patterns",
@@ -2622,7 +2559,7 @@
       "watch": "<b>Watches</b> each night's oxygen, breathing rate and time awake against your usual range.",
       "light": "<b>Lights up</b> when 3 or more of the last 14 nights have two of them off together.",
       "how": {
-        "footer": "Uses the nightly averages your device reports. Wrist sensors miss a lot during sleep, so a quiet card doesn't rule anything out."
+        "footer": "Uses the nightly averages your devices report. Their sensors miss a lot during sleep, so a quiet card doesn't rule anything out."
       }
     },
     "strain": {
@@ -2800,7 +2737,7 @@
       "light": "<b>Lights up</b> when half or more of the measured nights drop less than 10%.",
       "how": {
         "explainer": "Heart rate usually drops during sleep compared with the daytime, often by <b>10–20%</b>. Late meals, alcohol, heat, evening exercise and illness all shift it from night to night, so only a multi-week change is shown.",
-        "footer": "Daytime is the 08:00–20:00 average of your minute-level heart rate; night is your non-REM sleeping heart rate. A 10% drop is a night/day ratio of 0.90. The 10% and 20% lines come from overnight blood-pressure research and are only a rough guide for heart rate."
+        "footer": "Daytime is the 08:00–20:00 average of your minute-level heart rate while you weren't active: minutes at moderate effort or harder (40% of your heart-rate reserve, from your age and resting heart rate) are left out, so a workout doesn't widen the drop. Night is your non-REM sleeping heart rate. A 10% drop is a night/day ratio of 0.90. A smaller or blunted dip can be linked to chronic stress or an underlying cardiovascular condition, which is why it's worth mentioning at your next checkup."
       }
     },
     "entropy": {
@@ -2908,10 +2845,156 @@
       "light": "<b>Lights up</b> for any stretch above 100 bpm lasting 10 minutes or more, listed with its peak.",
       "how": {
         "explainer": "Fever, alcohol and vivid dreams can all keep your heart rate <b>high during sleep</b>.",
-        "footer": "Wrist readings during sleep can be noisy, and movement or waking raises them."
+        "footer": "Readings from your devices can be noisy during sleep, and movement or waking raises them."
       }
     },
     "howItWorks": "How it works"
+  },
+  "nutrition": {
+    "empty": {
+      "title": "No food logged yet",
+      "detail": "Log your meals in the Google Health app, or in an app that writes to it through Health Connect or Apple Health, and they'll show here."
+    },
+    "overTime": {
+      "title": "Your eating over time"
+    },
+    "chips": {
+      "label": "Charts",
+      "balance": "Balance",
+      "protein": "Protein",
+      "fibre": "Fibre",
+      "water": "Water"
+    },
+    "macros": {
+      "protein": "Protein",
+      "carbs": "Carbs",
+      "fat": "Fat",
+      "fibre": "Fibre"
+    },
+    "standing": {
+      "onTarget": "On target",
+      "close": "Close",
+      "short": "Short",
+      "inRange": "In range",
+      "above": "Above range",
+      "below": "Below range"
+    },
+    "grams": "{grams} g",
+    "gramsUnit": "g",
+    "percent": "{pct}%",
+    "partly": "partly logged",
+    "plate": {
+      "title": "Today's plate",
+      "meals": "{count, plural, =0 {nothing logged yet} one {# meal so far} other {# meals so far}}",
+      "of": "of about {kcal} {devices, select, yes {your devices say you burn in a day} other {your body burns in a day}}",
+      "over": "{kcal} more than {devices, select, yes {your devices say you burn in a day} other {your body burns in a day}}",
+      "targets": "Today's targets",
+      "grams": "<b>{grams}</b> g",
+      "ofTarget": "<b>{got}</b> of {target} g",
+      "ofLitres": "<b>{got}</b> of {target} L",
+      "maintenanceLine": "your maintenance",
+      "aria": "Today's food as squares, each 1% of what your body burns in a day: {protein} protein, {carbs} carbs and {fat} fat.",
+      "legend": {
+        "protein": "Protein{known, select, yes { {pct}%} other {}}",
+        "carbs": "Carbs, fibre included{known, select, yes { {pct}%} other {}}",
+        "fat": "Fat{known, select, yes { {pct}%} other {}}",
+        "toEat": "Still to eat"
+      },
+      "note": {
+        "protein": "Protein is at {got} of {target} g, so dinner is the place to catch up.",
+        "mix": "{macro, select, carbs {Carbs} other {Fat}} made up {share}% of today so far, against your usual {usual}%."
+      }
+    },
+    "clock": {
+      "title": "7-day meal clock",
+      "aria": "When you ate on each of the last 7 days, one ring a day, with your usual sleep from {bed} to {wake} shaded.",
+      "ariaNoSleep": "When you ate on each of the last 7 days, one ring a day.",
+      "meal": "{day}, {time}: {kcal} kcal, {protein} g protein",
+      "window": "eating window",
+      "midnight": "midnight",
+      "morning": "6am",
+      "noon": "noon",
+      "evening": "6pm",
+      "lastToBed": "Last meal {duration} before bed",
+      "outer": "Outer ring is yesterday",
+      "mix": "Each day's mix",
+      "dayMix": "{day}: protein {protein}%, carbs {carbs}%, fat {fat}%",
+      "dayNone": "{day}: nothing logged",
+      "legend": {
+        "meal": "A meal, bigger for more food",
+        "sleep": "Your usual sleep"
+      }
+    },
+    "average": {
+      "title": "Your average day",
+      "empty": "No day in this span was logged in full yet.",
+      "days": "{count, plural, one {# complete day} other {# complete days}}",
+      "energy": "Energy",
+      "vsMaintenance": "{kcal} kcal a day {dir, select, under {under} other {over}} your maintenance",
+      "name": "<b>{name}</b>",
+      "fibreOf": "of which <b>fibre</b>",
+      "noTarget": "Add a weigh-in, or set a protein target in Settings, to see it against a target",
+      "ofTarget": "{pct}% of your {target} g target",
+      "ofEnergy": "{pct}% of energy · usual {lo}–{hi}%",
+      "meals": "<b>Meals</b> {count} a day",
+      "logged": "{logged} of {finished} days logged"
+    },
+    "maintenance": {
+      "title": "Your maintenance",
+      "hint": "What your body burns in a day, worked out from what you ate and how your weight moved.",
+      "loading": "Loading your history…",
+      "needs": "Your maintenance needs about three weeks with most days logged in full and at least six weigh-ins. In the last four weeks: {days, plural, one {# full day} other {# full days}} and {weighIns, plural, one {# weigh-in} other {# weigh-ins}}.",
+      "block": "{weeks, plural, one {last week} other {last # weeks}}",
+      "perDay": "kcal a day",
+      "margin": "give or take about {kcal}",
+      "moved": "How it has moved",
+      "series": "maintenance",
+      "each": "Each point is the {weeks} weeks up to that day.",
+      "change": "{dir, select, down {Your maintenance has eased about {kcal} kcal since {date}.} up {Your maintenance has risen about {kcal} kcal since {date}.} other {Your maintenance has held steady since {date}.}}",
+      "ate": "What you ate",
+      "kcalPerDay": "{kcal} kcal a day",
+      "weight": "{dir, select, lost {Weight lost} gained {Weight gained} other {Weight}}",
+      "weightValue": "{kg} kg a week",
+      "devices": "What your devices estimate",
+      "devicesDiff": "{dir, select, higher {{pct}% higher} lower {{pct}% lower} other {the same}}",
+      "how": "How it's worked out",
+      "howText": "Over the last {weeks} weeks you ate {ate} kcal a day on your {days} fully logged days, and {weighIns} weigh-ins show your weight {dir, select, lost {falling {kg} kg a week, about {kcal} kcal a day at 7,700 kcal a kilo} gained {rising {kg} kg a week, about {kcal} kcal a day at 7,700 kcal a kilo} other {holding steady}}. So your body burned about {maintenance} a day. Your devices work out their own figure from your heart rate and movement."
+    },
+    "balance": {
+      "title": "Above or below maintenance",
+      "hint": "Each day's food against what your body burns. Bars above the line are days you ate more; below, days you ate less. Days logged only in part are left out.",
+      "series": "against your maintenance",
+      "needsMaintenance": "This chart needs your maintenance first.",
+      "more": "Ate more",
+      "less": "Ate less",
+      "summary": "You ate less than your maintenance on {under} of {days} days{moved, select, fell {, and your weight fell about {kg} kg} rose {, and your weight rose about {kg} kg} other {}}."
+    },
+    "protein": {
+      "title": "Protein",
+      "hintAuto": "Your target is {perKg} g per kg of body weight: {target} g at {weight} kg.",
+      "hintOwn": "Your target is {target} g a day, set in Settings.",
+      "hintNone": "Add a weigh-in, or set a target in Settings, to see days against a target."
+    },
+    "fibre": {
+      "title": "Fibre",
+      "hint": "Most adults fall short of 25 to 30 g a day."
+    },
+    "water": {
+      "title": "Water",
+      "hint": "What you log, against your {target} L a day. Water in food, and drinks you don't log, aren't counted.",
+      "average": "avg <value>{avg} L</value> · target {target} L",
+      "met": "{days, plural, one {You reached your target on {met} of the # day you logged water.} other {You reached your target on {met} of the # days you logged water.}}",
+      "noneMet": "No day reached {target} L yet; your best was {best} L on {date}.",
+      "none": "No water logged in this span. Log what you drink in the Google Health app and it shows here."
+    },
+    "chartAverage": "avg <value>{avg} g</value>{known, select, yes { · target {target} g} other {}}",
+    "legend": {
+      "reached": "Reached target",
+      "under": "Under target",
+      "partly": "Partly logged",
+      "met": "You reached your target on {met} of {days} days.",
+      "noneMet": "No day reached {target} g yet; your best was {best} g on {date}."
+    }
   },
   "data": {
     "claude": {
@@ -2946,6 +3029,9 @@
         "platform": "{platform, select, FITBIT {Google} HEALTH_CONNECT {through Health Connect} HEALTH_KIT {through Apple Health} GOOGLE_FIT {Google Fit} other {}}",
         "lastReading": "last reading {date}"
       },
+      "platformOnly": {
+        "FITBIT": "Google Health app"
+      },
       "supplies": {
         "none": "Nothing in the last {days} days."
       },
@@ -2965,15 +3051,15 @@
         "hint": "Steps, distance, energy, active and zone minutes, floors and minute heart rate come already added up by Google, so they can't be split by device. You can choose which kinds of source count.",
         "all": {
           "name": "Every device and app",
-          "note": "The default. Your watch, the steps your phone counts, and workouts other apps add."
+          "note": "The default. Your wearables, the steps your phone counts, and workouts other apps add."
         },
         "google": {
           "name": "Google and Fitbit only",
-          "note": "Your watch, your phone's step count and what you log in Google Health. Leaves out other apps."
+          "note": "Your wearables, your phone's step count and what you log in Google Health. Leaves out other apps."
         },
         "worn": {
           "name": "Only what you wear",
-          "note": "Your watch or band alone. Leaves out your phone's steps and anything logged by hand."
+          "note": "Your wearables alone. Leaves out your phone's steps and anything logged by hand."
         },
         "confirm": "With this choice, Healthier fetches your daily totals and minute heart rate from Google again. That takes a few minutes, and everything else keeps working.",
         "apply": "Fetch again",
@@ -3019,13 +3105,12 @@
       },
       "summaries": {
         "claude": "Let Claude read your data in a chat",
-        "devices": "{first} first, then {rest}",
         "devicesNone": "Nothing reported yet",
-        "goals": "{steps} steps · {brisk} brisk min · {sleep} sleep",
-        "cycle": "{tracking, select, on {{cards, select, yes {On · cards on Today} other {On}}} other {Off}}",
-        "facts": "How your numbers are worked out",
-        "account": "{theme, select, dark {Dark theme · Sign out, or disconnect and delete} light {Light theme · Sign out, or disconnect and delete} other {Your device's theme · Sign out, or disconnect and delete}}",
-        "accountDemo": "{theme, select, dark {Dark theme · Leave the demo} light {Light theme · Leave the demo} other {Your device's theme · Leave the demo}}"
+        "streams": "{count, plural, one {# data type} other {# data types}}",
+        "cycle": "{tracking, select, on {On} other {Off}}",
+        "facts": "Data processing in Healthier",
+        "account": "Theme · Sign out · Delete",
+        "accountDemo": "Theme · Leave the demo"
       }
     },
     "status": {
@@ -3043,7 +3128,6 @@
       "signIn": "Sign in again",
       "current": {
         "title": "Your data is up to date",
-        "sub": "Healthier fetches what's new from Google Health on its own, and Full sync fetches your whole window again.",
         "demo": "This is the demo: made-up days, worked out in this browser."
       },
       "behind": {
@@ -3145,6 +3229,30 @@
         "noteAuto": "Worked out from your recent nights, between {min} and {max} hours. Your body battery and sleep debt use it.",
         "noteOwn": "Your own figure, between {min} and {max} hours. Your body battery and sleep debt use it. <button>Back to auto</button>"
       },
+      "protein": {
+        "label": "Protein",
+        "per": "g a day",
+        "auto": "Auto",
+        "less": "Less protein",
+        "more": "More protein",
+        "noteAuto": "Worked out from your weight, at {perKg} g per kg. The Nutrition page measures against it.",
+        "noteNoWeight": "Worked out from your weight once you have a weigh-in, at {perKg} g per kg. Until then, set your own.",
+        "noteOwn": "Your own figure, between {min} and {max} g. The Nutrition page measures against it. <button>Back to auto</button>"
+      },
+      "fibre": {
+        "label": "Fibre",
+        "per": "g a day",
+        "less": "Less fibre",
+        "more": "More fibre",
+        "note": "The Nutrition page's fibre target. 30 g is the UK's recommendation; most adults eat less."
+      },
+      "water": {
+        "label": "Water",
+        "per": "L a day",
+        "less": "Less water",
+        "more": "More water",
+        "note": "The Nutrition page's water target, for what you log. Europe's food safety authority suggests about 1.6 L a day from drinks for women and 2.0 L for men."
+      },
       "failed": "Couldn't save that change, so your goals are as they were. Try again."
     },
     "intraday": {
@@ -3153,7 +3261,7 @@
       "less": "Less",
       "more": "More",
       "hint": "Minutes of heart rate recorded in each hour over the last {days, plural, one {# day} other {# days}}. Each block is one hour; solid means most of it was recorded.",
-      "hintWeekly": "Minutes of heart rate recorded in each hour, averaged per week over the {days, plural, one {# day} other {# days}} minute data is kept. Gaps show when the watch is usually off.",
+      "hintWeekly": "Minutes of heart rate recorded in each hour, averaged per week over the {days, plural, one {# day} other {# days}} minute data is kept. Gaps show the hours your devices are usually off.",
       "today": "Today",
       "cell": "{date} {time} · {minutes} min recorded",
       "cellAverage": "{date} {time} · {minutes} min recorded on average, over {days, plural, one {# day} other {# days}}"
@@ -3163,7 +3271,7 @@
       "hint": "What to know about the numbers Healthier shows you.",
       "arithmetic": {
         "lead": "Arithmetic, not AI",
-        "text": "Your body battery, sleep score and insights are worked out with plain arithmetic from your own data. Nothing is written or guessed by AI. Sleep stages and cardio fitness are your watch's own estimates."
+        "text": "Your body battery, sleep score and insights are worked out with plain arithmetic from your own data. Nothing is written or guessed by AI. Sleep stages and cardio fitness are estimated by your devices themselves."
       },
       "usual": {
         "lead": "Usual means usual for you",
@@ -3179,7 +3287,7 @@
       },
       "minutes": {
         "lead": "Heart rate, minute by minute",
-        "text": "Your watch measures your heart rate every few seconds. Healthier keeps one average per minute for the heart rate charts and Labs, so very short spikes are smoothed out."
+        "text": "Your devices measure your heart rate every few seconds. Healthier keeps one average per minute for the heart rate charts and Labs, so very short spikes are smoothed out."
       }
     },
     "streams": {
@@ -3247,7 +3355,7 @@
         "last": "{how} · last fetch: {requests, plural, one {# request} other {# requests}}, {pages, plural, one {# page} other {# pages}}, {ms} ms",
         "lastWithStatus": "{how} · last fetch: {requests, plural, one {# request} other {# requests}}, {pages, plural, one {# page} other {# pages}}, {ms} ms, HTTP {status}",
         "none": "not fetched",
-      "derived": "computed by Healthier from the one-minute heart rate during your main sleep, while cycle tracking is on"
+        "derived": "computed by Healthier from the one-minute heart rate during your main sleep, while cycle tracking is on"
       },
       "domains": {
         "movement": "Activity & Movement",

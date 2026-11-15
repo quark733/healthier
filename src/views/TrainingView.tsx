@@ -189,7 +189,7 @@ export function TrainingView({ demo, today, notice, days = [] }: { demo: boolean
         </>
       ) : (
         <>
-          <ChartChips label={t('training.chips.label')} options={charts} value={shown.key} onChange={setChart} />
+          <ChartChips label={t('training.chips.label')} options={charts} value={shown.key} onChange={setChart} colour="var(--orange-400)" />
           {shown.card}
         </>
       )}

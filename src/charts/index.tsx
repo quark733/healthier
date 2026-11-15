@@ -13,7 +13,7 @@ import { AXIS, GRID, fmtDuration, fmtNum } from '../ui/primitives';
 import { rulerStep } from '../ui/DayRuler';
 import type { DailyRecord, SleepSession } from '../types/health';
 import { names, numberFormat, t, type MessageKey } from '../i18n';
-import { bucketLabel, formatCivil, formatClock, meanLabel, weekdayLetter } from '../i18n/format';
+import { bucketLabel, formatCivil, formatClock, formatHours, formatMinutes, meanLabel, weekdayLetter } from '../i18n/format';
 
 /**
  * Charts.
@@ -83,6 +83,31 @@ const tickNumber = (v: number) => numberFormat({ maximumFractionDigits: 20 }).fo
 export const axisTick = (v: number) =>
   Math.abs(v) >= 1000 ? t('format.thousands', { value: tickNumber(Number((v / 1000).toFixed(2))) }) : tickNumber(v);
 
+/**
+ * An axis of minutes in hours, as the cards' own figures are: "0", "30m", "6h", "1h 30m". Its spaces
+ * don't break, or the axis wraps "1h 30m" onto two lines.
+ */
+const minutesTick = (v: number) => (v === 0 ? tickNumber(0) : v < 60 ? formatMinutes(v) : formatHours(v)).replace(/ /g, ' ');
+
+/**
+ * Ticks for an axis of minutes, on quarter, half or whole hours, the finest that keeps to about five
+ * steps between lo and hi: a night's length reads 5h, 6h, 7h rather than 300, 400, 500.
+ */
+/** The y-axis column: wider when a tick reads hours and minutes ("1h 30m"), or its first figures are cut off. */
+const axisWidth = (ticks: number[] | null, minutes: boolean) => (minutes && ticks?.some((v) => v > 60 && v % 60) ? 64 : 52);
+
+function minuteTicks(lo: number, hi: number): number[] {
+  if (hi - lo < 30) {
+    lo -= 30;
+    hi += 30;
+  }
+  lo = Math.max(0, lo);
+  const step = [15, 30, 60, 120, 180].find((s) => Math.ceil(hi / s) - Math.floor(lo / s) <= 5) ?? 240;
+  const ticks: number[] = [];
+  for (let v = Math.floor(lo / step) * step; v <= Math.ceil(hi / step) * step; v += step) ticks.push(v);
+  return ticks;
+}
+
 /** Sparse x-axis labels: roughly one per week, always including the last day. */
 function tickInterval(n: number): number {
   if (n <= 10) return 0;
@@ -115,7 +140,7 @@ function RulerTick({ x, y, index, payload, n }: { x: number; y: number; index: n
   );
 }
 
-/** A bar chart's day axis: the ruler while it applies, else sparse labels. */
+/** A chart's day axis, bars or lines: the ruler while it applies, else sparse labels. */
 function dayAxis(n: number, bucket: Bucket) {
   return isRuler(n, bucket)
     ? { interval: 0, tick: (p: any) => <RulerTick {...p} n={n} />, height: 30 }
@@ -137,11 +162,23 @@ export function TrendChart({
   format = (v: number) => fmtNum(v),
   area = true,
   bucket = 'day',
+  minutes = false,
+  joined = false,
+  seriesName,
 }: {
   series: Point[];
   color: string;
   unit?: string;
   height?: number;
+  /** The values are minutes, so the axis says them in hours: "5h", "6h". */
+  minutes?: boolean;
+  /**
+   * Readings sparse by design, such as a weekly figure on a daily axis: each one a dot, joined by
+   * a solid line, rather than the dashed join that admits a gap in what was measured.
+   */
+  joined?: boolean;
+  /** What the tooltip calls a reading. */
+  seriesName?: string;
   /** Rolling-mean length in points; defaults to suit the bucket. Null turns it off. */
   meanWindow?: number | null;
   domain?: [number | 'auto', number | 'auto'];
@@ -173,8 +210,8 @@ export function TrendChart({
       ...(baseline ? [baseline.centre - baseline.spread, baseline.centre + baseline.spread] : []),
       ...(zone ? [zone.low, zone.high] : []),
     ];
-    return niceScale(Math.min(...v, ...edges), Math.max(...v, ...edges));
-  }, [series, domain, baseline?.centre, baseline?.spread, zone?.low, zone?.high]);
+    return (minutes ? minuteTicks : niceScale)(Math.min(...v, ...edges), Math.max(...v, ...edges));
+  }, [series, domain, minutes, baseline?.centre, baseline?.spread, zone?.low, zone?.high]);
   if (!known) return <NoSeries height={height} />;
 
   /**
@@ -187,14 +224,14 @@ export function TrendChart({
    * Monotone smoothing is also dropped here, since it overshoots wildly when
    * points are far apart.
    */
-  const sparse = known / Math.max(1, n) < 0.6;
+  const sparse = !joined && known / Math.max(1, n) < 0.6;
   const curve = sparse ? 'linear' : 'monotone';
   const showMean = !!meanWindow && !sparse;
 
   return (
     <div>
     <ResponsiveContainer width="100%" height={height}>
-      <ComposedChart data={rows} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
+      <ComposedChart data={rows} margin={{ top: 8, right: isRuler(n, bucket) ? 16 : 8, left: -16, bottom: 0 }}>
         <defs>
           <linearGradient id={id} x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor={color} stopOpacity={0.28} />
@@ -227,22 +264,16 @@ export function TrendChart({
             stroke="var(--color-zinc-400)" strokeOpacity={0.8} strokeWidth={1.5} strokeDasharray="0.1 4" strokeLinecap="round"
           />
         ))}
-        <XAxis
-          dataKey="label"
-          axisLine={false}
-          tickLine={false}
-          interval={tickInterval(n)}
-          tick={TICK}
-          dy={6}
-        />
+        {/* Up to a month of days, a ruler as under the bar charts: a mark for every day, dates every few. */}
+        <XAxis dataKey="label" axisLine={false} tickLine={false} {...dayAxis(n, bucket)} />
         <YAxis
           axisLine={false}
           tickLine={false}
           tick={TICK}
-          tickFormatter={axisTick}
+          tickFormatter={minutes ? minutesTick : axisTick}
           domain={domain ?? (ticks ? [ticks[0], ticks[ticks.length - 1]] : ['auto', 'auto'])}
           ticks={ticks ?? undefined}
-          width={52}
+          width={axisWidth(ticks, minutes)}
         />
         <Tooltip
           contentStyle={tooltipStyle} itemStyle={{ color: 'var(--color-zinc-400)' }}
@@ -250,7 +281,7 @@ export function TrendChart({
           labelFormatter={tooltipHeading}
           formatter={(v: any, name?: string | number) => [
             v === null ? t('charts.tooltip.notRecorded') : reading(format(Number(v)), unit),
-            name === 'mean' && meanWindow ? meanLabel(bucket, meanWindow) : t('charts.trend.series', { bucket }),
+            name === 'mean' && meanWindow ? meanLabel(bucket, meanWindow) : seriesName ?? t('charts.trend.series', { bucket }),
           ]}
         />
         {area && !sparse && (
@@ -271,8 +302,8 @@ export function TrendChart({
           type={curve} dataKey="value" stroke={color}
           strokeWidth={sparse ? 0 : meanWindow ? 1 : 1.8}
           strokeOpacity={sparse ? 0 : meanWindow ? 0.45 : 1}
-          dot={sparse ? { r: 3, fill: color, stroke: 'none' } : false}
-          connectNulls={false} isAnimationActive={false}
+          dot={sparse ? { r: 3, fill: color, stroke: 'none' } : joined ? { r: 3.5, fill: color, stroke: 'var(--card-edge)', strokeWidth: 1 } : false}
+          connectNulls={joined} isAnimationActive={false}
         />
         {showMean && (
           <Line
@@ -327,6 +358,10 @@ export function BarSeries({
   height = 180,
   format = (v: number) => fmtNum(v, 0),
   bucket = 'day',
+  minutes = false,
+  tickStep,
+  hollow,
+  hollowNote,
 }: {
   series: Point[];
   color: string;
@@ -336,8 +371,22 @@ export function BarSeries({
   format?: (v: number) => string;
   /** Set when the series has been grouped; bars are then averages per day. */
   bucket?: Bucket;
+  /** The values are minutes, so the axis says them in hours: "30m", "1h", "1h 30m". */
+  minutes?: boolean;
+  /** Axis ticks every this much from zero, past the goal and the tallest bar, where the chart's own would land on odd values. */
+  tickStep?: number;
+  /** Days drawn as a dashed outline rather than filled, such as a day only partly logged, and what the tooltip calls them. */
+  hollow?: ReadonlySet<string>;
+  hollowNote?: string;
 }) {
   const rows = useMemo(() => toRows(series, undefined, bucket), [series, bucket]);
+  const ticks = useMemo(() => {
+    if (!values(series).length) return null;
+    if (minutes) return minuteTicks(0, Math.max(...values(series)));
+    if (!tickStep) return null;
+    const top = Math.max(...values(series), goal ?? 0);
+    return Array.from({ length: Math.ceil(top / tickStep) + 1 }, (_, i) => i * tickStep);
+  }, [series, minutes, tickStep, goal]);
   if (!values(series).length) return <NoSeries height={height} />;
   return (
     <ResponsiveContainer width="100%" height={height}>
@@ -350,24 +399,32 @@ export function BarSeries({
           />
         )}
         <XAxis dataKey="label" axisLine={false} tickLine={false} {...dayAxis(rows.length, bucket)} />
-        <YAxis axisLine={false} tickLine={false} tick={TICK} tickFormatter={axisTick} width={52} />
+        <YAxis
+          axisLine={false} tickLine={false} tick={TICK} width={axisWidth(ticks, minutes)}
+          tickFormatter={minutes ? minutesTick : axisTick}
+          {...(ticks ? { ticks, domain: [0, ticks[ticks.length - 1]] } : {})}
+        />
         <Tooltip
           contentStyle={tooltipStyle} itemStyle={{ color: 'var(--color-zinc-400)' }}
           labelStyle={{ color: 'var(--color-zinc-200)', fontWeight: 600 }}
           labelFormatter={tooltipHeading}
-          formatter={(v: any) => [
+          formatter={(v: any, _name: any, item: any) => [
             v === null ? t('charts.tooltip.notRecorded') : reading(format(Number(v)), unit),
-            bucket === 'day' ? '' : t('charts.bars.averagePerDay'),
+            hollow?.has(item?.payload?.date) ? hollowNote ?? '' : bucket === 'day' ? '' : t('charts.bars.averagePerDay'),
           ]}
         />
         <Bar dataKey="value" radius={[3, 3, 0, 0]} isAnimationActive={false}>
-          {rows.map((r, i) => (
-            <Cell
-              key={i}
-              fill={color}
-              fillOpacity={goal !== undefined && r.value !== null ? (r.value >= goal ? 0.95 : 0.42) : 0.85}
-            />
-          ))}
+          {rows.map((r, i) =>
+            hollow?.has(r.date) ? (
+              <Cell key={i} fill="transparent" stroke={AXIS} strokeWidth={1} strokeDasharray="3 2" />
+            ) : (
+              <Cell
+                key={i}
+                fill={color}
+                fillOpacity={goal !== undefined && r.value !== null ? (r.value >= goal ? 0.95 : 0.42) : 0.85}
+              />
+            ),
+          )}
         </Bar>
       </BarChart>
     </ResponsiveContainer>
@@ -442,7 +499,9 @@ export function DivergingBars({
   negColor = 'var(--indigo-400)',
   bucket = 'day',
   digits = 2,
-  seriesLabel,
+  format = (v: number) => fmtNum(v, digits),
+  seriesName,
+  ruler = false,
   symbol = true,
 }: {
   series: Point[];
@@ -451,21 +510,29 @@ export function DivergingBars({
   posColor?: string;
   negColor?: string;
   bucket?: Bucket;
-  /** Decimals in the tooltip. */
+  /** Decimals in the tooltip, when no format is given. */
   digits?: number;
-  /** What the tooltip calls the series; by default, a deviation from baseline. */
-  seriesLabel?: string;
+  format?: (v: number) => string;
+  /** What the tooltip calls a bar; by default, a deviation from the person's baseline. */
+  seriesName?: string;
+  /** The day axis as a ruler, as under the other bar charts, while it applies. */
+  ruler?: boolean;
   /** Whether the unit is a symbol written against the number (°C), not a word after a space (kcal). */
   symbol?: boolean;
 }) {
   const rows = useMemo(() => toRows(series, undefined, bucket), [series, bucket]);
   if (!values(series).length) return <NoSeries height={height} />;
+  const asRuler = ruler && isRuler(rows.length, bucket);
   return (
     <ResponsiveContainer width="100%" height={height}>
-      <BarChart data={rows} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
+      <BarChart data={rows} margin={{ top: 8, right: asRuler ? 16 : 8, left: -16, bottom: 0 }}>
         <CartesianGrid stroke={GRID} strokeDasharray="2 4" vertical={false} />
         <ReferenceLine y={0} stroke="var(--color-zinc-600)" strokeWidth={1} />
-        <XAxis dataKey="label" axisLine={false} tickLine={false} interval={tickInterval(rows.length)} tick={TICK} dy={6} />
+        {ruler ? (
+          <XAxis dataKey="label" axisLine={false} tickLine={false} {...dayAxis(rows.length, bucket)} />
+        ) : (
+          <XAxis dataKey="label" axisLine={false} tickLine={false} interval={tickInterval(rows.length)} tick={TICK} dy={6} />
+        )}
         <YAxis axisLine={false} tickLine={false} tick={TICK} tickFormatter={axisTick} width={52} />
         <Tooltip
           contentStyle={tooltipStyle} itemStyle={{ color: 'var(--color-zinc-400)' }}
@@ -475,9 +542,9 @@ export function DivergingBars({
             v === null
               ? t('charts.tooltip.notRecorded')
               : symbol
-                ? t('charts.tooltip.valueSymbol', { value: `${v > 0 ? '+' : ''}${fmtNum(Number(v), digits)}`, unit })
-                : reading(`${v > 0 ? '+' : ''}${fmtNum(Number(v), digits)}`, unit),
-            seriesLabel ?? t('charts.diverging.series', { bucket }),
+                ? t('charts.tooltip.valueSymbol', { value: `${v > 0 ? '+' : ''}${format(Number(v))}`, unit })
+                : reading(`${v > 0 ? '+' : ''}${format(Number(v))}`, unit),
+            seriesName ?? t('charts.diverging.series', { bucket }),
           ]}
         />
         <Bar dataKey="value" radius={[2, 2, 0, 0]} isAnimationActive={false}>
@@ -530,7 +597,8 @@ export function Hypnogram({ session, height = 200 }: { session: SleepSession; he
     );
   }
   const total = segs.reduce((a, s) => a + s.durationMin, 0);
-  const PL = 46, PR = 6, PT = 16, PB = 26;
+  // The left margin holds the stage names, set in capitals like the key below.
+  const PL = 52, PR = 6, PT = 16, PB = 26;
   const w = Math.max(0, W - PL - PR);
   const rowH = (height - PT - PB) / 4;
   const barH = Math.round(rowH * 0.62);
@@ -613,7 +681,7 @@ export function Hypnogram({ session, height = 200 }: { session: SleepSession; he
               return (
                 <g key={k}>
                   <line x1={PL} x2={W - PR} y1={y} y2={y} stroke={GRID} strokeWidth={1} />
-                  <text x={PL - 10} y={y + 3.5} textAnchor="end" fontSize={10.5} fill={AXIS}>{t(st.label)}</text>
+                  <text x={PL - 10} y={y + 3.5} textAnchor="end" fontSize={10.5} fill={AXIS} className="uppercase tracking-wider">{t(st.label)}</text>
                 </g>
               );
             })}
@@ -659,18 +727,15 @@ export function Hypnogram({ session, height = 200 }: { session: SleepSession; he
   );
 }
 
-export function StageLegend() {
+/**
+ * The hypnogram's key. The chart names its stages along its side, so only the ticks above it
+ * need explaining, and only on a night that has them.
+ */
+export function StageLegend({ session }: { session: SleepSession }) {
+  if (!session.segments.length || !session.shortAwakeningsMin.length) return null;
   return (
-    <div className="flex flex-wrap gap-x-4 gap-y-1.5 px-5 pb-4">
-      {Object.values(STAGE_STYLE).map((s) => (
-        <span key={s.label} className="flex items-center gap-1.5 text-note uppercase tracking-wider text-zinc-500">
-          <i className="w-2.5 h-2.5 rounded-sm" style={{ background: s.color }} />
-          {t(s.label)}
-        </span>
-      ))}
-      <span className="flex items-center gap-1.5 text-note uppercase tracking-wider text-zinc-500">
-        <i className="w-[2px] h-3 bg-zinc-200" /> {t('charts.stageLegend.briefAwakening')}
-      </span>
+    <div className="flex items-center gap-1.5 px-5 pb-4 text-note uppercase tracking-wider text-zinc-500">
+      <i className="w-[2px] h-3 bg-zinc-200" /> {t('charts.stageLegend.briefAwakening')}
     </div>
   );
 }
