@@ -14,12 +14,14 @@ import {
   saveMeal,
   updateFoodAmounts,
 } from './foodlog-repo';
+import { sharedFoodSearcher } from './foodsearch';
 
 /** The food diary from the Nutrition page: read, pasted in by the day, an entry added or deleted. */
 export function foodLogApiRoutes(deps: Deps): Router {
   const router = Router();
   router.use('/food-log', requireUser(deps));
   router.use('/saved-meals', requireUser(deps));
+  router.use('/food-search', requireUser(deps));
 
   router.get(
     '/food-log',
@@ -81,6 +83,15 @@ export function foodLogApiRoutes(deps: Deps): Router {
     asyncHandler(async (req, res) => {
       const ok = await deleteFoodEntry(deps.db, res.locals.userId, String(req.params.id));
       res.status(ok ? 200 : 404).json({ ok });
+    }),
+  );
+
+  /** Food to log, from Open Food Facts and Livsmedelsverket (server/foodsearch.ts): ?q= a name or a barcode. */
+  router.get(
+    '/food-search',
+    asyncHandler(async (req, res) => {
+      const q = typeof req.query.q === 'string' ? req.query.q : '';
+      res.json(await sharedFoodSearcher().search(q));
     }),
   );
 

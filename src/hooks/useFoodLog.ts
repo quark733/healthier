@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { api } from '../lib/api';
 import { addDays, type CivilDate } from '../lib/date';
 import { parseFoodImport, savedMealEntries, scaleEntry, type FoodEntry, type Meal, type SavedMeal } from '../pipeline/foodLog';
+import type { FoodMatch } from '../pipeline/foodSearch';
 
 /** The demo person's diary: yesterday and today so far. Made up. */
 function demoDiary(today: CivilDate): FoodEntry[] {
@@ -139,7 +140,16 @@ export function useFoodLog(demo: boolean, today: CivilDate | null) {
     [demo],
   );
 
-  return { entries, importText, remove, setGrams, copyTo, saved, saveMeal, logSaved, deleteSaved };
+  /** Food from Open Food Facts and Livsmedelsverket, through the server; nothing in the demo. */
+  const findFood = useCallback(
+    async (q: string): Promise<{ off: FoodMatch[]; slv: FoodMatch[] }> => {
+      if (demo) return { off: [], slv: [] };
+      return api<{ off: FoodMatch[]; slv: FoodMatch[] }>(`/api/food-search?q=${encodeURIComponent(q)}`);
+    },
+    [demo],
+  );
+
+  return { entries, importText, remove, setGrams, copyTo, saved, saveMeal, logSaved, deleteSaved, findFood, demo };
 }
 
 export type FoodLog = ReturnType<typeof useFoodLog>;

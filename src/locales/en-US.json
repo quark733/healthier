@@ -2050,6 +2050,20 @@
     }
   },
   "food": {
+    "search": {
+      "placeholder": "Search a food or type a barcode",
+      "clear": "Clear",
+      "scan": "Photograph a barcode",
+      "per100": "{kcal} kcal · P {p} g per 100 g",
+      "group": "{source, select, history {Eaten before} off {Packaged food (Open Food Facts)} other {Plain food (Livsmedelsverket)}}",
+      "state": "{state, select, loading {Searching…} failed {The search didn't go through. Try again in a moment.} scanning {Reading the barcode…} noCode {No barcode found in the photo. Try closer, with the lines sharp and straight.} other {}}",
+      "none": "Nothing found. Try a shorter word, or the package's barcode.",
+      "grams": "Grams",
+      "meal": "Meal",
+      "add": "Add",
+      "added": "{food} added.",
+      "source": "{source, select, history {Per 100 g from what you logged before.} off {From Open Food Facts (open data, ODbL), per 100 g as sold. Check against the package.} other {From Livsmedelsverket's food database (CC BY 4.0), per 100 g.}}"
+    },
     "macros": {
       "protein": "Protein"
     },
@@ -2066,7 +2080,7 @@
     },
     "diary": {
       "title": "Food diary",
-      "hint": "What you ate, meal by meal. Tell Claude what you're eating and it writes it here, using your food library's numbers; you can also paste lines below. Tap a weight to change it (the numbers follow), copy a meal to today, or save a meal you eat often and add it again with one tap. The bars follow energy and protein, the two that matter most while you diet; carbs and fat are shown as amounts, with a floor for fat. A day in the diary is that day's food: whatever a diary app like MyFitnessPal sent for it is set aside, so nothing counts twice. Days without diary entries keep the app's numbers, so your history and maintenance carry on.",
+      "hint": "What you ate, meal by meal. Tell Claude what you're eating and it writes it here, using your food library's numbers. Or search: what you've eaten before, packaged food from Open Food Facts (type or photograph the barcode) and plain food from Livsmedelsverket; set the grams and the meal and add it. You can also paste lines below. Tap a weight to change it (the numbers follow), copy a meal to today, or save a meal you eat often and add it again with one tap. The bars follow energy and protein, the two that matter most while you diet; carbs and fat are shown as amounts, with a floor for fat. A day in the diary is that day's food: whatever a diary app like MyFitnessPal sent for it is set aside, so nothing counts twice. Days without diary entries keep the app's numbers, so your history and maintenance carry on.",
       "prev": "Previous month",
       "next": "Next month",
       "legend": "Purple: from the diary. Grey: from a diary app.",

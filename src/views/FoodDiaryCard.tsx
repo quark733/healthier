@@ -9,6 +9,7 @@ import type { FoodLog } from '../hooks/useFoodLog';
 import { useTargets } from '../hooks/useTargets';
 import { byDate, fatFloorFor, mealsOf, savedMealEntries, totalsOf, weekAverage, type FoodEntry, type FoodTotals, type Meal } from '../pipeline/foodLog';
 import { Card, CardHead, MACRO, fmtNum } from '../ui/primitives';
+import { FoodSearch } from './FoodSearch';
 
 /**
  * The food diary as a calendar: a month of days, each with what was eaten, and the chosen day's
@@ -124,6 +125,7 @@ export function FoodDiaryCard({ days, today, foodLog }: { days: DailyRecord[]; t
         <div>
           <p className="text-detail text-zinc-100 mb-1">{formatCivilLong(chosen)}</p>
           <WeekLine days={days} end={chosen} targets={targets} />
+          <FoodSearch foodLog={foodLog} date={chosen} today={today} />
           <SavedMeals foodLog={foodLog} date={chosen} />
           {total ? (
             <>
@@ -355,7 +357,7 @@ function SaveMeal({ meal, entries, onSave }: { meal: Meal; entries: FoodEntry[];
 }
 
 /** kcal, then protein, carbs and fat in their colours. */
-function MacroLine({ x, className = '' }: { x: { kcal: number; protein: number; carbs: number; fat: number }; className?: string }) {
+export function MacroLine({ x, className = '' }: { x: { kcal: number; protein: number; carbs: number; fat: number }; className?: string }) {
   return (
     <span className={`tabular-nums text-zinc-400 ${className}`}>
       {rich('food.diary.macroLine', {

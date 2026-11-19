@@ -8,6 +8,7 @@ import { readTargets } from '../src/pipeline/targets';
 import { latestMaintenance } from '../src/pipeline/eating';
 import { histories, markerFor, parseLabText, rangeFor, statusOf, type LabResult } from '../src/pipeline/bloodwork';
 import { saveLabResults } from './labs-api';
+import { sharedFoodSearcher } from './foodsearch';
 import { readCheckin, type Checkin } from '../src/pipeline/checkin';
 import { readMeasurement, bpSummary, waistSummary, type Measurement } from '../src/pipeline/measurements';
 import { readLogEntry, type LogEntry } from '../src/pipeline/healthLog';
@@ -223,6 +224,16 @@ function buildServer(deps: Deps, userId: string, scope: Scope): McpServer {
       const meals = await getSavedMeals(deps.db, userId);
       return text(meals.map((m) => ({ ...m, totals: roundTotals(totalsOf(savedMealEntries(m, '2000-01-01' as CivilDate))) })));
     },
+  );
+
+  server.registerTool(
+    'find_food',
+    {
+      description:
+        "Look a food up when it isn't in the person's food library: by barcode (8–14 digits, from a package) in Open Food Facts, or by name in Open Food Facts (packaged food sold in Sweden) and Livsmedelsverket's food database (plain food: fruit, meat, eggs). Values are per 100 g. Packaging the person shows you beats these; say which source you used.",
+      inputSchema: { query: z.string().min(2).max(80) },
+    },
+    async ({ query }) => text(await sharedFoodSearcher().search(query)),
   );
 
   if (scope === 'write') {
